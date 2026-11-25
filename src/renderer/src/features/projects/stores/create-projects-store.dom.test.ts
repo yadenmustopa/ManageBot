@@ -104,6 +104,10 @@ function fakePort(): { port: ProjectPort; dispose: () => void } {
         if (index !== -1) links.splice(index, 1);
       },
     },
+    threadRepositoryScope: {
+      getScope: async ({ threadId }) => ({ threadId, projectId: null, repositoryId: null }),
+      setScope: async ({ threadId, projectId, repositoryId }) => ({ threadId, projectId, repositoryId }),
+    },
   };
   return { port, dispose: () => {} };
 }

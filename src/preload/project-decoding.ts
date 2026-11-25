@@ -8,8 +8,10 @@ import {
   parseProjectOrNull,
   parseRepositoryList,
   parseRepositoryOrNull,
+  parseThreadRepositoryScope,
   parseWorkspaceList,
   parseWorkspaceOrNull,
+  type ThreadRepositoryScope,
 } from "@openbot/contracts/project";
 
 function required<T>(value: T | null, label: string): T {
@@ -40,3 +42,6 @@ export const decodeRepositoryList = (value: unknown): OpenBotRepository[] =>
 
 export const decodeProjectDashboardSummary = (value: unknown): ProjectDashboardSummary =>
   required(parseProjectDashboardSummary(value), "project dashboard summary response");
+
+export const decodeThreadRepositoryScope = (value: unknown): ThreadRepositoryScope =>
+  required(parseThreadRepositoryScope(value), "thread repository scope response");

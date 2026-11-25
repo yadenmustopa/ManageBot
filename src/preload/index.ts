@@ -342,6 +342,7 @@ import {
   decodeProjectOrNull,
   decodeRepository,
   decodeRepositoryList,
+  decodeThreadRepositoryScope,
   decodeWorkspace,
   decodeWorkspaceList,
 } from "./project-decoding";
@@ -1189,6 +1190,10 @@ const openbotApi: OpenBotDesktopApi = {
     listForProject: decodeRepositoryList,
     refreshRepository: decodeRepository,
     detachRepository: decodeVoid,
+  }),
+  threadRepositoryScope: bridgeGroup(IPC_ENDPOINTS.threadRepositoryScope, {
+    getScope: decodeThreadRepositoryScope,
+    setScope: decodeThreadRepositoryScope,
   }),
   hostedServers: bridgeGroup(IPC_ENDPOINTS.hostedServers, {
     lifecycle: decodeVoid,

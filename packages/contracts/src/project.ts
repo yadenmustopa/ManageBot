@@ -326,3 +326,35 @@ export function parseProjectDashboardSummary(value: unknown): ProjectDashboardSu
   if (!isDynamicRecord(value) || !isString(value.projectId) || typeof value.repositoryCount !== "number") return null;
   return { projectId: value.projectId, repositoryCount: value.repositoryCount };
 }
+
+export interface ThreadRepositoryScope {
+  threadId: string;
+  projectId: string | null;
+  repositoryId: string | null;
+}
+
+export interface ThreadIdInput {
+  threadId: string;
+}
+
+export function parseThreadIdInput(value: unknown): ThreadIdInput | null {
+  return isDynamicRecord(value) && isString(value.threadId) ? { threadId: value.threadId } : null;
+}
+
+export interface SetThreadRepositoryScopeInput {
+  threadId: string;
+  projectId: string | null;
+  repositoryId: string | null;
+}
+
+export function parseSetThreadRepositoryScopeInput(value: unknown): SetThreadRepositoryScopeInput | null {
+  if (!isDynamicRecord(value) || !isString(value.threadId)) return null;
+  if (!isNullableString(value.projectId) || !isNullableString(value.repositoryId)) return null;
+  return { threadId: value.threadId, projectId: value.projectId, repositoryId: value.repositoryId };
+}
+
+export function parseThreadRepositoryScope(value: unknown): ThreadRepositoryScope | null {
+  if (!isDynamicRecord(value) || !isString(value.threadId)) return null;
+  if (!isNullableString(value.projectId) || !isNullableString(value.repositoryId)) return null;
+  return { threadId: value.threadId, projectId: value.projectId, repositoryId: value.repositoryId };
+}

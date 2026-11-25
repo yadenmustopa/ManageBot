@@ -127,6 +127,7 @@ import { sharedTableIpcHandlers } from "./ipc/shared-table-handlers";
 import { skillIpcHandlers } from "./ipc/skill-handlers";
 import { storageIpcHandlers } from "./ipc/storage-handlers";
 import { teamIpcHandlers } from "./ipc/team-handlers";
+import { threadRepositoryScopeIpcHandlers } from "./ipc/thread-repository-scope-handlers";
 import { updateIpcHandlers } from "./ipc/update-handlers";
 import { vaultIpcHandlers } from "./ipc/vault-handlers";
 import { voiceIpcHandlers } from "./ipc/voice-handlers";
@@ -790,6 +791,7 @@ function registerIpcHandlers({
   credits,
   projects,
   repositories,
+  threadRepositoryScopes,
   hostedServers,
   localServers,
   routineFeed,
@@ -937,6 +939,7 @@ function registerIpcHandlers({
     ...creditsIpcHandlers({ credits }),
     ...projectIpcHandlers({ projects, repositories }),
     ...repositoryIpcHandlers({ repositories }),
+    ...threadRepositoryScopeIpcHandlers({ threadRepositoryScopes }),
     ...routineFeedIpcHandlers({ routineFeed }),
     ...eventsIpcHandlers({ events, remoteServers }),
     ...hostedServerIpcHandlers({ hostedServers }),

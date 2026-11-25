@@ -8,6 +8,7 @@ import { useText } from "@openbot/ui/text";
 import { Portal } from "@solidjs/web";
 import { createEffect, Show } from "solid-js";
 import { deviceQuoteShortcut } from "../../send-shortcut-preference";
+import { RepositoryContextBadge } from "../projects/RepositoryContextBadge";
 import { agentFolderCalls } from "./agent-folders-port";
 import { ConversationComposer } from "./ConversationComposer";
 import { ConversationHeader } from "./ConversationHeader";
@@ -138,6 +139,7 @@ export function ConversationView(props: ConversationProps) {
           </Show>
         </Show>
         <ConversationHeader />
+        <RepositoryContextBadge threadId={props.agent?.threadId ?? null} />
         {props.notice}
 
         <ConversationTimeline />

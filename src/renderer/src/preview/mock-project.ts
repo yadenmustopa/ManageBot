@@ -1,4 +1,8 @@
-import type { ProjectsDesktopApi, RepositoriesDesktopApi } from "@openbot/contracts/ipc";
+import type {
+  ProjectsDesktopApi,
+  RepositoriesDesktopApi,
+  ThreadRepositoryScopeDesktopApi,
+} from "@openbot/contracts/ipc";
 import {
   type CreateProjectInput,
   createProjectId,
@@ -12,6 +16,8 @@ import {
   type OpenBotWorkspace,
   type ProjectIdInput,
   type RepositoryIdInput,
+  type SetThreadRepositoryScopeInput,
+  type ThreadIdInput,
   type UpdateProjectInput,
 } from "@openbot/contracts/project";
 import { sourceText } from "@openbot/i18n/source";
@@ -83,7 +89,11 @@ function seedRepositories(projectId: string): { repository: OpenBotRepository; p
  * Workspace Phase 1). This is the Storybook/preview product surface, not a test double, so it
  * seeds real-looking data rather than returning empty lists (see `src/renderer/AGENTS.md`).
  */
-export function createMockProjectWorkspace(): { projects: ProjectsDesktopApi; repositories: RepositoriesDesktopApi } {
+export function createMockProjectWorkspace(): {
+  projects: ProjectsDesktopApi;
+  repositories: RepositoriesDesktopApi;
+  threadRepositoryScope: ThreadRepositoryScopeDesktopApi;
+} {
   const workspace = seedWorkspace();
   const projects = new Map<string, OpenBotProject>(seedProjects(workspace.id).map((project) => [project.id, project]));
   const repositories = new Map<string, OpenBotRepository>();
@@ -196,5 +206,17 @@ export function createMockProjectWorkspace(): { projects: ProjectsDesktopApi; re
     },
   };
 
-  return { projects: projectsApi, repositories: repositoriesApi };
+  const threadScopes = new Map<string, { projectId: string | null; repositoryId: string | null }>();
+  const threadRepositoryScopeApi: ThreadRepositoryScopeDesktopApi = {
+    getScope: async ({ threadId }: ThreadIdInput) => {
+      const scope = threadScopes.get(threadId) ?? { projectId: null, repositoryId: null };
+      return { threadId, ...scope };
+    },
+    setScope: async ({ threadId, projectId, repositoryId }: SetThreadRepositoryScopeInput) => {
+      threadScopes.set(threadId, { projectId, repositoryId });
+      return { threadId, projectId, repositoryId };
+    },
+  };
+
+  return { projects: projectsApi, repositories: repositoriesApi, threadRepositoryScope: threadRepositoryScopeApi };
 }

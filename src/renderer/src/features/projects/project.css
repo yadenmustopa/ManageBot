@@ -177,3 +177,21 @@
   display: flex;
   justify-content: flex-end;
 }
+
+.repository-context-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--openbot-space-1, 4px);
+  padding: 0 var(--openbot-space-3, 12px) var(--openbot-space-2, 8px);
+}
+
+.repository-context-badge-separator {
+  color: var(--openbot-text-muted);
+}
+
+.repository-context-badge-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--openbot-space-1, 4px);
+  margin-inline-start: var(--openbot-space-2, 8px);
+}

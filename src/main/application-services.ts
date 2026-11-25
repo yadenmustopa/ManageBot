@@ -116,6 +116,7 @@ import { passwordVaultRouter } from "../backend/password-vault-router";
 import { perfTime } from "../backend/perf-probe-hooks";
 import { ProjectStore } from "../backend/project/project-store";
 import { RepositoryStore } from "../backend/project/repository-store";
+import { ThreadRepositoryScopeStore } from "../backend/project/thread-repository-scope";
 import { sweepProviderTemp } from "../backend/provider-temp";
 import { routineFlowRoutines } from "../backend/routine-flows/routine-flow-routines";
 import { RoutineFlowStore } from "../backend/routine-flows/routine-flow-store";
@@ -766,6 +767,7 @@ export interface ApplicationServices {
   credits: CreditsDesktopService;
   projects: ProjectStore;
   repositories: RepositoryStore;
+  threadRepositoryScopes: ThreadRepositoryScopeStore;
   hostedServers: HostedServerDesktopService;
   routineFeed: RoutineFeedServer;
   events: HostEventsService;
@@ -1280,6 +1282,7 @@ export async function createApplicationServices({
   const credits = new CreditsDesktopService(centralAuth, openLink);
   const projects = new ProjectStore(store.database);
   const repositories = new RepositoryStore(store.database);
+  const threadRepositoryScopes = new ThreadRepositoryScopeStore(store.database);
   projects.ensureDefaultWorkspace();
   const hostedServers = new HostedServerDesktopService(
     withHostingDeveloperKey(centralAuth, hostingDeveloperKey),
@@ -4462,6 +4465,7 @@ export async function createApplicationServices({
     credits,
     projects,
     repositories,
+    threadRepositoryScopes,
     hostedServers,
     routineFeed,
     events,

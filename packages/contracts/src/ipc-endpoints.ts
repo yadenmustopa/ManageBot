@@ -704,6 +704,9 @@ import type {
   ProjectDashboardSummary,
   ProjectIdInput,
   RepositoryIdInput,
+  SetThreadRepositoryScopeInput,
+  ThreadIdInput,
+  ThreadRepositoryScope,
   UpdateProjectInput,
   WorkspaceIdInput,
 } from "./project";
@@ -1437,6 +1440,10 @@ export const IPC_ENDPOINTS = {
     restoreProject: request<ProjectIdInput, void>()("projects:restore"),
     getDashboardSummary: request<ProjectIdInput, ProjectDashboardSummary>()("projects:get-dashboard-summary"),
   },
+  threadRepositoryScope: {
+    getScope: request<ThreadIdInput, ThreadRepositoryScope>()("thread-repository-scope:get"),
+    setScope: request<SetThreadRepositoryScopeInput, ThreadRepositoryScope>()("thread-repository-scope:set"),
+  },
   repositories: {
     importRepository: request<ImportRepositoryInput, OpenBotRepository>()("repositories:import"),
     listForProject: request<ProjectIdInput, OpenBotRepository[]>()("repositories:list-for-project"),
@@ -2125,6 +2132,7 @@ export const IPC_GROUP_PATHS = {
   credits: "credits",
   projects: "projects",
   repositories: "repositories",
+  threadRepositoryScope: "threadRepositoryScope",
   license: "license",
   hostedServers: "hostedServers",
   localServers: "localServers",
