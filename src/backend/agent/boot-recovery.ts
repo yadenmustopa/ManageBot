@@ -12,6 +12,7 @@ import { mergeConversationSnapshots } from "../conversation-snapshots";
 import { causeHelpers, reportOriginalFailure } from "../effect-boundary";
 import { LineTooLongError } from "../jsonl";
 import type { DeliveryContext, MailboxStore } from "../mailbox-store";
+import { resolveAgentExecutionContext } from "../project/repository-context-resolver";
 import { providerSync } from "../provider-client-effects";
 import {
   compactImportedProviderHistory,
@@ -183,23 +184,29 @@ export class BootRecovery {
       reason: "OpenBot restarted before this delivery reached a confirmed terminal state.",
     };
     const recovered = yield* Effect.gen({ self: this }, function* () {
-      const { agent, client, session } = yield* recoveryStep(() => {
+      const { agent, client, session, threadId } = yield* recoveryStep(() => {
         const agent = this.#store.list().find((candidate) => candidate.id === delivery.recipientAgentId);
         const client = agent ? this.#providers.clientForAgent(agent) : null;
         const threadId = this.#hooks.deliveryThreadId?.(delivery.id) ?? agent?.threadId;
         const session = agent && threadId ? this.#store.database.activeProviderSession(threadId, agent.provider) : null;
-        return { agent, client, session };
+        return { agent, client, session, threadId };
       });
       if (agent && session && client) {
         const historyKey = `${session.provider}:${session.externalSessionId}`;
         if (this.#unreadableHistory.has(historyKey)) return interrupted;
         if (!client.readHistory) return interrupted;
+        const executionContext = yield* resolveAgentExecutionContext(
+          this.#store.database,
+          agent,
+          threadId,
+          this.#store.sharedRoot,
+        ).pipe(toBootRecoveryFailed);
         let recovered: { turnId: string; status?: string } | undefined;
         yield* client
           .readHistory(
             {
               threadId: session.externalSessionId,
-              cwd: agent.workspacePath,
+              cwd: executionContext.cwd,
               items: delivery.turnId ? "none" : "full",
             },
             (fragment) =>
@@ -438,6 +445,20 @@ export class BootRecovery {
               ? yield* this.#threads.threadParams(agent, client, session.externalSessionId).pipe(toBootRecoveryFailed)
               : { threadId: session.externalSessionId };
           if (!client.readHistory) return;
+          // `threadParams` already resolves a repository-scoped `cwd` when it applies (the "active
+          // session" branch above); the fallback below covers retired/non-active sessions, where
+          // `params` has no `cwd` at all — resolve the same way rather than defaulting straight to
+          // `agent.workspacePath`, so a retired session's history import still honors its thread's
+          // repository scope.
+          const executionContext =
+            typeof params.cwd === "string"
+              ? null
+              : yield* resolveAgentExecutionContext(
+                  this.#store.database,
+                  agent,
+                  publicThreadId,
+                  this.#store.sharedRoot,
+                ).pipe(toBootRecoveryFailed);
           yield* importProviderHistory({
             database: this.#store.database,
             readHistory: client.readHistory.bind(client),
@@ -446,7 +467,7 @@ export class BootRecovery {
             externalSessionId: session.externalSessionId,
             agentId: agent.id,
             publicThreadId,
-            cwd: typeof params.cwd === "string" ? params.cwd : agent.workspacePath,
+            cwd: typeof params.cwd === "string" ? params.cwd : (executionContext?.cwd ?? agent.workspacePath),
             retired: session.state === "inactive",
             findDelivery: (deliveryId) => this.#mailbox.deliveryForProviderMessage(agent.id, deliveryId),
             findMessageDelivery: (messageId) => this.#mailbox.deliveryForMessage(messageId, agent.id),

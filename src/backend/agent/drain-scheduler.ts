@@ -26,6 +26,7 @@ import { incomingAgentExchange } from "../conversation-snapshots";
 import { causeHelpers } from "../effect-boundary";
 import { channelLane, type DeliveryContext, laneChannelId, type MailboxStore, MESSAGING_LANE } from "../mailbox-store";
 import type { MessagingThreads } from "../messaging/messaging-threads";
+import { resolveAgentExecutionContext } from "../project/repository-context-resolver";
 import { decodeTurnResponse } from "../protocol";
 import { ProviderSignInError } from "../provider-client-effects";
 import type { ContextCompaction } from "./context-compaction";
@@ -65,7 +66,7 @@ import type { ThreadLifecycle } from "./thread-lifecycle";
 import type { DeliveryStart } from "./turn-lifecycle";
 import { TurnSlots } from "./turn-slots";
 import type { UsageLimitGate } from "./usage-limit-gate";
-import { checkAgentFolders, codexSandboxPolicy, workspaceWritableRoots } from "./workspace-sandbox";
+import { checkAgentFolders, codexSandboxPolicy } from "./workspace-sandbox";
 
 export const REMOVED_ENDPOINT_MESSAGE = sourceText("error.agent.endpointRemoved");
 
@@ -928,6 +929,12 @@ export class DrainScheduler {
         return;
       }
 
+      const executionContext = yield* resolveAgentExecutionContext(
+        this.#store.database,
+        agent,
+        this.#conversation.publicThreadId(agent.id, threadId),
+        this.#store.sharedRoot,
+      ).pipe(toDeliveryStartFailed);
       const agentNames = agentNamesById(this.#store.list());
       const tags = this.#hooks.tagReferences(agent.id, this.#conversation.publicThreadId(agent.id, threadId));
       const requestIds = new Set(
@@ -1071,11 +1078,11 @@ export class DrainScheduler {
                 answerOptional:
                   delivery.sender.kind === "agent" && delivery.expectsReply === false && !delivery.replyToMessageId,
                 input: inputForThread(providerThreadId),
-                cwd: agent.workspacePath,
-                runtimeWorkspaceRoots: workspaceWritableRoots(agent, this.#store.sharedRoot),
+                cwd: executionContext.cwd,
+                runtimeWorkspaceRoots: executionContext.writableRoots,
                 approvalPolicy: this.#threads.approvalPolicy(agent),
                 approvalsReviewer: "user",
-                sandboxPolicy: codexSandboxPolicy(agent, this.#store.sharedRoot),
+                sandboxPolicy: codexSandboxPolicy(agent, this.#store.sharedRoot, executionContext.writableRoots),
                 ...(client.provider === "codex" || client.provider === "claude"
                   ? this.#serviceTier(agent, client.provider)
                   : {}),

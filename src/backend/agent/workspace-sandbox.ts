@@ -92,11 +92,22 @@ export function workspaceTemporaryPaths(platform: NodeJS.Platform = process.plat
   return [...new Set(platform === "win32" ? [tmpdir()] : ["/tmp", tmpdir()])];
 }
 
-export function codexSandboxPolicy(agent: SandboxedAgent, sharedRoot: string): CodexSandboxPolicy {
+/**
+ * `writableRoots` defaults to `workspaceWritableRoots(agent, sharedRoot)` — every existing caller
+ * is unaffected. Pass it explicitly (e.g. `RepositoryContextResolver`'s resolved roots) to fence a
+ * repository-scoped session to its repository instead of the agent's own workspace (PRD FR-04: the
+ * resolved directory "must also feed workspace-writable-roots-equivalent fencing, or isolation is
+ * cosmetic").
+ */
+export function codexSandboxPolicy(
+  agent: SandboxedAgent,
+  sharedRoot: string,
+  writableRoots: readonly string[] = workspaceWritableRoots(agent, sharedRoot),
+): CodexSandboxPolicy {
   if (!workspaceAccessEnforced(agent)) return { type: "dangerFullAccess" };
   return {
     type: "workspaceWrite",
-    writableRoots: workspaceWritableRoots(agent, sharedRoot),
+    writableRoots: [...writableRoots],
     networkAccess: true,
     excludeTmpdirEnvVar: false,
     excludeSlashTmp: false,
@@ -106,9 +117,8 @@ export function codexSandboxPolicy(agent: SandboxedAgent, sharedRoot: string): C
 export function codexSandboxConfig(
   agent: SandboxedAgent,
   sharedRoot: string,
+  writableRoots: readonly string[] = workspaceWritableRoots(agent, sharedRoot),
 ): { sandbox_workspace_write?: { writable_roots: string[]; network_access: boolean } } {
   if (!workspaceAccessEnforced(agent)) return {};
-  return {
-    sandbox_workspace_write: { writable_roots: workspaceWritableRoots(agent, sharedRoot), network_access: true },
-  };
+  return { sandbox_workspace_write: { writable_roots: [...writableRoots], network_access: true } };
 }

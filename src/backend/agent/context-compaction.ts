@@ -11,6 +11,7 @@ import { Effect, Schema } from "effect";
 import type { AgentClient } from "../agent-client";
 import type { AgentStore } from "../agent-store";
 import { causeHelpers } from "../effect-boundary";
+import { resolveAgentExecutionContext } from "../project/repository-context-resolver";
 import { decodeRecordResponse, getRecord } from "../protocol";
 import { finiteNumberOrNull } from "./account-usage";
 import { CacheExpiryCompaction } from "./cache-expiry-compaction";
@@ -509,6 +510,16 @@ export class ContextCompaction {
     const hold: CompactionHold = { agentId, client, turnId: null };
     this.#compacting.set(threadId, hold);
     const runsInRequest = client.contextCompaction === "request";
+    // Compaction is best-effort background maintenance of an already-running session, not a fresh
+    // session launch (contrast the other three call sites, which must fail loudly rather than
+    // fall back — PRD FR-04). A resolution failure here (e.g. the repository folder disappeared
+    // mid-session) degrades to the agent's own workspace rather than aborting compaction, matching
+    // the rest of this method's existing swallow-and-continue error handling below.
+    const executionContext = runsInRequest
+      ? yield* resolveAgentExecutionContext(this.#store.database, agent, threadId, this.#store.sharedRoot).pipe(
+          Effect.catch(() => Effect.succeed(null)),
+        )
+      : null;
 
     yield* this.#loadSession(agentId, client, threadId)
       .pipe(
@@ -526,7 +537,7 @@ export class ContextCompaction {
           return client
             .request(
               "thread/compact/start",
-              runsInRequest ? { threadId, cwd: agent.workspacePath } : { threadId },
+              runsInRequest ? { threadId, cwd: executionContext?.cwd ?? agent.workspacePath } : { threadId },
               decodeRecordResponse,
               runsInRequest ? this.#runTimeoutMs : undefined,
             )

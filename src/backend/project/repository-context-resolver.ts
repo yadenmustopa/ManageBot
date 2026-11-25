@@ -1,0 +1,100 @@
+import { stat } from "node:fs/promises";
+import type { AgentSummary } from "@openbot/contracts/ipc";
+import { sourceText } from "@openbot/i18n/source";
+import { Effect, Schema } from "effect";
+import { existingAgentFolders, workspaceWritableRoots } from "../agent/workspace-sandbox";
+import { databaseRow, requiredStringColumn } from "../database/database-rows";
+import type { OpenBotDatabase } from "../openbot-database";
+import { inspectGitRepository } from "./git-inspect";
+import { ThreadRepositoryScopeStore } from "./thread-repository-scope";
+
+/**
+ * Same `{ cause: Schema.Defect() }` shape as `McpOperationError`/`ThreadOperationFailed`, so a call
+ * site can fold it into its own tagged error with `.pipe(toThreadOperationFailed)` exactly like
+ * every other failure mode in `thread-lifecycle.ts` — no new error channel.
+ */
+export class RepositoryContextError extends Schema.TaggedError<RepositoryContextError>()("RepositoryContextError", {
+  cause: Schema.Defect(),
+}) {}
+
+function repositoryContextFailure(message: string) {
+  return Effect.fail(new RepositoryContextError({ cause: message }));
+}
+
+export interface AgentExecutionContext {
+  readonly cwd: string;
+  readonly writableRoots: readonly string[];
+  /** Non-null only when `cwd` came from a registered repository, not the agent's own workspace. */
+  readonly repositoryId: string | null;
+}
+
+type ScopableAgent = Pick<AgentSummary, "id" | "additionalFolders" | "workspacePath">;
+
+/**
+ * Resolves the working directory + writable roots used when a provider session/turn starts
+ * (PRD FR-04). Pure function of (thread's stored repository scope, agent, sharedRoot) — call it
+ * once per session/turn start, not mid-turn (PRD 8.4 "context immutability").
+ *
+ * The load-bearing guarantee: a thread with no repository association (the overwhelming majority
+ * of threads today, and every thread that existed before Phase 2) resolves to exactly
+ * `{ cwd: agent.workspacePath, writableRoots: workspaceWritableRoots(agent, sharedRoot), repositoryId: null }`
+ * — the same value every one of the four call sites computed before this resolver existed. Nothing
+ * about an unscoped agent's behavior changes.
+ *
+ * A thread that IS associated with a repository never silently falls back: a missing directory or
+ * a folder that is no longer a Git working tree fails the effect explicitly (PRD FR-04 acceptance:
+ * "A missing repository produces a visible error rather than falling back to an unrelated
+ * directory").
+ */
+export const resolveAgentExecutionContext = Effect.fn("resolveAgentExecutionContext")(function* (
+  database: OpenBotDatabase,
+  agent: ScopableAgent,
+  threadId: string | null | undefined,
+  sharedRoot: string,
+) {
+  const fallback: AgentExecutionContext = {
+    cwd: agent.workspacePath,
+    writableRoots: workspaceWritableRoots(agent, sharedRoot),
+    repositoryId: null,
+  };
+  if (!threadId) return fallback;
+
+  const scope = new ThreadRepositoryScopeStore(database).getScope(threadId);
+  if (!scope.repositoryId) return fallback;
+
+  const repository = databaseRepository(database, scope.repositoryId);
+  if (!repository) return yield* repositoryContextFailure(sourceText("error.backend.repositoryGone"));
+
+  const isDirectory = yield* Effect.promise(() =>
+    stat(repository.canonicalPath).then(
+      (info) => info.isDirectory(),
+      () => false,
+    ),
+  );
+  if (!isDirectory) return yield* repositoryContextFailure(sourceText("error.backend.repositoryPathMissing"));
+
+  const inspection = yield* Effect.promise(() => inspectGitRepository(repository.canonicalPath));
+  if (!inspection.isWorkingTree)
+    return yield* repositoryContextFailure(sourceText("error.backend.repositoryNotGitWorkingTree"));
+
+  return {
+    cwd: repository.canonicalPath,
+    writableRoots: [repository.canonicalPath, sharedRoot, ...existingAgentFolders(agent)],
+    repositoryId: repository.id,
+  } satisfies AgentExecutionContext;
+});
+
+function databaseRepository(
+  database: OpenBotDatabase,
+  repositoryId: string,
+): { id: string; canonicalPath: string } | null {
+  // Avoids a circular import with repository-store.ts's own error-throwing accessors: this
+  // resolver needs a non-throwing lookup it can turn into an explicit Effect failure instead.
+  const row = databaseRow(
+    database.connection
+      .prepare("SELECT repository_id, canonical_path FROM projection_repositories WHERE repository_id = ?")
+      .get(repositoryId),
+  );
+  if (!row) return null;
+  return { id: requiredStringColumn(row, "repository_id"), canonicalPath: requiredStringColumn(row, "canonical_path") };
+}

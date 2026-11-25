@@ -52,6 +52,7 @@ import {
   toMcpShapeFailed,
   usableMcpServers,
 } from "../mcp-provider-shapes";
+import { resolveAgentExecutionContext } from "../project/repository-context-resolver";
 import { decodeRecordResponse, decodeThreadResponse, getRecord, getString, type ResponseDecoder } from "../protocol";
 import { TimeoutError, withTimeout } from "../with-timeout";
 import type { AgentMemories } from "./agent-memories";
@@ -95,7 +96,6 @@ import {
   codexSandboxMode,
   existingAgentFolders,
   workspaceExcludedFolders,
-  workspaceWritableRoots,
 } from "./workspace-sandbox";
 
 const logger = createOpenBotLogger("thread-lifecycle");
@@ -633,6 +633,12 @@ export class ThreadLifecycle {
   ) {
     const agent = this.#sessionAgent(owner, publicThreadId);
     yield* checkAgentFolders(agent);
+    const executionContext = yield* resolveAgentExecutionContext(
+      this.#store.database,
+      agent,
+      publicThreadId,
+      this.#store.sharedRoot,
+    ).pipe(toThreadOperationFailed);
     const mcpServers = this.#agentMcpServers(agent);
     const toolRuntimes = this.#toolRuntimes();
     const own = yield* this.codexOwnServersEffect(client, mcpServers, toolRuntimes);
@@ -640,13 +646,21 @@ export class ThreadLifecycle {
     const section = this.#sectionTeammates(agent.id);
     const proxy = client.provider === "codex" ? yield* this.#proxyFingerprint(mcpServers) : null;
     const instructionsFile = yield* this.#instructionsFile(agent, client);
-    const config = yield* this.codexConfigEffect(agent, client, mcpServers, own, toolRuntimes, environment);
+    const config = yield* this.codexConfigEffect(
+      agent,
+      client,
+      mcpServers,
+      own,
+      toolRuntimes,
+      environment,
+      executionContext.writableRoots,
+    );
     const params: DynamicRecord = {
       ...config,
       model: agent.model,
       effort: agent.reasoningEffort,
-      cwd: agent.workspacePath,
-      runtimeWorkspaceRoots: workspaceWritableRoots(agent, this.#store.sharedRoot),
+      cwd: executionContext.cwd,
+      runtimeWorkspaceRoots: executionContext.writableRoots,
       approvalPolicy: this.approvalPolicy(agent),
       approvalsReviewer: "user",
       sandbox: codexSandboxMode(agent),
@@ -829,6 +843,7 @@ export class ThreadLifecycle {
     own: CodexOwnServers,
     toolRuntimes: McpToolRuntimes,
     environment: Readonly<Record<string, string>>,
+    writableRoots?: readonly string[],
   ): Effect.fn.Return<
     {
       config?: {
@@ -869,7 +884,7 @@ export class ThreadLifecycle {
           ...CODEX_DIRECT_ONLY_NAMESPACES,
           ...codexDirectMcpNamespaces(servers),
         ],
-        ...codexSandboxConfig(agent, this.#store.sharedRoot),
+        ...codexSandboxConfig(agent, this.#store.sharedRoot, writableRoots),
         ...Object.fromEntries(
           Object.entries(environment).map(([name, value]) => [`shell_environment_policy.set.${name}`, value]),
         ),
@@ -1292,6 +1307,12 @@ export class ThreadLifecycle {
     const computerUseInOwnChat = this.#computerUseInOwnChat(owner, publicThreadId);
     const agent = this.#sessionAgent(owner, publicThreadId);
     yield* checkAgentFolders(agent);
+    const executionContext = yield* resolveAgentExecutionContext(
+      this.#store.database,
+      agent,
+      publicThreadId,
+      this.#store.sharedRoot,
+    ).pipe(toThreadOperationFailed);
     const configs = this.#agentMcpServers(agent);
     const toolRuntimes = this.#toolRuntimes();
     const instructionsFile = yield* this.#instructionsFile(agent, client);
@@ -1299,8 +1320,8 @@ export class ThreadLifecycle {
       threadId: externalThreadId,
       model: agent.model,
       effort: agent.reasoningEffort,
-      cwd: agent.workspacePath,
-      runtimeWorkspaceRoots: workspaceWritableRoots(agent, this.#store.sharedRoot),
+      cwd: executionContext.cwd,
+      runtimeWorkspaceRoots: executionContext.writableRoots,
       approvalPolicy: this.approvalPolicy(agent),
       approvalsReviewer: "user",
       sandbox: codexSandboxMode(agent),
@@ -1328,6 +1349,7 @@ export class ThreadLifecycle {
         yield* this.codexOwnServersEffect(client, configs, toolRuntimes),
         toolRuntimes,
         this.#agentEnvironment(),
+        executionContext.writableRoots,
       )),
     };
   }).bind(this);
