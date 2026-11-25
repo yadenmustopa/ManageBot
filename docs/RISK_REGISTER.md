@@ -1,0 +1,25 @@
+# Risk Register
+
+Ranked by (likelihood × impact) as assessed from what Phase 0 actually found, not generic PRD risk
+language.
+
+| # | Risk | Evidence | Likelihood | Impact | Mitigation |
+|---|---|---|---|---|---|
+| 1 | Commercial-use ambiguity under PolyForm Noncommercial | `LICENSE_AUDIT.md` — BharataCorp using this to build other commercial products is the exact grey zone the license doesn't clearly permit | Medium | High (legal) | Get written confirmation from `licenses@openbot.run` before any use beyond personal experimentation. Do not treat this audit's reading as legal advice. |
+| 2 | Agent runs in wrong repository / data leak across repos | `AGENT_RUNTIME_AUDIT.md` — today one agent = one fixed folder; FR-04's resolver is new, security-sensitive code touching 4 call sites in the hottest part of the codebase | Medium | High (data loss/leak, exactly what AT-04/AT-05/AT-16 test for) | Resolver must be pure, immutable-per-turn, preflight-validated; add the acceptance tests in `ACCEPTANCE_TESTS.md` before merging Phase 2, not after. |
+| 3 | Packaged fork build silently points at upstream's release/update channel | `SECURITY_AUDIT.md` — `electron-builder.yml` `publish.owner: nightly-labs` verified as-is | Low (not packaging yet) but High impact if triggered | Medium→High | Rebrand `appId`/`productName`/`publish.*` before Phase 1 ends, even though packaging isn't attempted until later — cheap to fix now, easy to forget later. |
+| 4 | New migration breaks the frozen-baseline convention | `DATABASE_AUDIT.md` — `0008-baseline.ts` explicitly frozen, `check:frozen-migrations` script exists | Low (tooling catches it) | Medium (CI failure, not data loss) | Always append a new numbered migration; never touch `0001-0069`; run `bun run check:migrations` locally before PR. |
+| 5 | Event-sourced schema done wrong (plain CRUD table instead of event+projection) | `DATABASE_AUDIT.md` — architecture is CQRS, not obvious from the PRD's own conceptual schema (section 9) which reads like plain CRUD | Medium | Medium (inconsistent codebase, future maintenance burden, not a security/data risk) | Model new entities explicitly on an existing projection (e.g. `projection_channels`) during Phase 1 design review, not from the PRD's schema section alone. |
+| 6 | Node version mismatch masks or causes real test failures | `TEST_BASELINE.md` — repo wants Node ≥24, sandbox has v22.23.1; one test fails, root cause not fully confirmed as Node-version-related | Medium | Low-Medium (false signal, wasted debugging) | Re-run `test:desktop` on an actual Node 24 host before trusting any new failure as "caused by my change" vs. pre-existing environment artifact. |
+| 7 | Building a second Workflow/Task/Monitoring system instead of extending the existing one | `FEATURE_INVENTORY.md` — FR-10/FR-14/FR-17 all have mature existing subsystems; PRD text itself warns against this but conceptual schema (section 9) could be read as "build new" | Medium | Medium (wasted effort, upstream-sync pain forever after) | Explicit go/no-go design review before Phase 4/6 start: "show me the existing table/file you're extending," not "here's the new table." |
+| 8 | GitHub integration (FR-12) introduces new credential-handling surface without the same rigor as existing code | `SECURITY_AUDIT.md` — genuinely new attack surface, not yet audited (existing `github-connector-service.ts` scope unknown) | Low-Medium | Medium-High (credential leak) | Read `github-connector-service.ts` fully and reuse its existing auth path before writing new OAuth/token code for FR-12; targeted security review of just the new code at Phase 5 start. |
+| 9 | ~170-file agent runtime directory is upstream's most actively developed area, maximizing future merge conflicts | `UPSTREAM_SYNC_STRATEGY.md` — inferred from file count/test-script density, not a commit-frequency analysis | Medium | Medium (maintenance cost, not correctness) | Keep the FR-04 diff at the 4 call sites minimal (single function-call extraction), per sync strategy; re-assess with an actual `git log --stat` against upstream once more history is fetched. |
+| 10 | Claiming "verified" without having actually run a real Claude Code / Codex session | `AGENT_RUNTIME_AUDIT.md`/`TEST_BASELINE.md` — this audit is static-code + build + unit-test only; no live provider session was exercised | High (certain, in this pass) | Medium (false confidence) | Phase 2 exit criteria (AT-06/AT-07) explicitly require live smoke tests on a real machine with authenticated CLIs; do not mark Phase 2 done on vitest-green alone. |
+
+## Explicitly not a risk (de-risked by this audit)
+
+- "Does a project-centric layer even fit without a rewrite?" — Yes; confirmed additive integration
+  points exist at exactly the layers the PRD hoped for (IPC boundary, migration system, agent
+  runtime's existing `cwd` parameter).
+- "Is the build broken / unmaintainable?" — No; clean install + build + 2282/2283 tests passing on
+  first try, on a Node version the repo doesn't even officially support yet.
