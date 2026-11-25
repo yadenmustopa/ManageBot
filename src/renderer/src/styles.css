@@ -71,6 +71,7 @@
 @import "./features/window/window.css";
 @import "./features/files/library.css";
 @import "./features/crm/crm-page.css";
+@import "./features/projects/project.css";
 @import "@openbot/ui/features/settings/opencode-key-dialog.css";
 @import "./features/settings/settings-mobile-connect.css";
 @import "@openbot/ui/features/settings/settings-hosted-sites.css";

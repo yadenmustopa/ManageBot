@@ -112,6 +112,7 @@ export function WorkspacePageRail(props: { hidden: boolean }) {
       onProviders={openProviders()}
       onCrm={crmRailAction()}
       onCrmConnectors={crmConnectorsAction()}
+      onProjects={() => windowPage.openProjects()}
       onCredits={creditsRailAction()}
       creditBalance={windowPage.creditsMenu().state?.balance}
       onMarketplace={() => {

@@ -12,6 +12,9 @@ export const LibraryPanel = lazy(() =>
   import("./features/files/LibraryPanel").then((module) => ({ default: module.LibraryPanel })),
 );
 export const CrmPage = lazy(() => import("./features/crm/CrmPage").then((module) => ({ default: module.CrmPage })));
+export const ProjectsPage = lazy(() =>
+  import("./features/projects/ProjectsPage").then((module) => ({ default: module.ProjectsPage })),
+);
 export const CrmScreen = lazy(() =>
   import("./features/crm/CrmScreen").then((module) => ({ default: module.CrmScreen })),
 );

@@ -29,6 +29,7 @@ import { ProviderDetectionProvider } from "./features/custom-providers/provider-
 import { DynamicIslandBridge } from "./features/dynamic-island/dynamic-island-bridge";
 import { DynamicIslandProvider } from "./features/dynamic-island/dynamic-island-context";
 import { SetupProvider } from "./features/onboarding/onboarding-context";
+import { ProjectsProvider } from "./features/projects/project-context";
 import { RemoteDesktopProvider } from "./features/remote-desktop/remote-desktop-context";
 import { ServerScopeProvider } from "./features/servers/server-scope";
 import { ServerSelectionProvider } from "./features/servers/server-selection";
@@ -88,16 +89,18 @@ export function AppProviders(props: ParentProps<AppProps>): JSX.Element {
                                     <AnsweredPromptsProvider>
                                       <UiErrorsProvider>
                                         <UsageProvider>
-                                          <WindowPageProvider>
-                                            <AgentReadTrackingProvider>
-                                              <Show when={!props.chatWindow}>
-                                                <AppBootstrap />
-                                              </Show>
-                                              <ServerScopeBoundary stableConversation={stableConversation}>
-                                                {props.children}
-                                              </ServerScopeBoundary>
-                                            </AgentReadTrackingProvider>
-                                          </WindowPageProvider>
+                                          <ProjectsProvider>
+                                            <WindowPageProvider>
+                                              <AgentReadTrackingProvider>
+                                                <Show when={!props.chatWindow}>
+                                                  <AppBootstrap />
+                                                </Show>
+                                                <ServerScopeBoundary stableConversation={stableConversation}>
+                                                  {props.children}
+                                                </ServerScopeBoundary>
+                                              </AgentReadTrackingProvider>
+                                            </WindowPageProvider>
+                                          </ProjectsProvider>
                                         </UsageProvider>
                                       </UiErrorsProvider>
                                     </AnsweredPromptsProvider>

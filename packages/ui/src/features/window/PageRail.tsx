@@ -10,6 +10,7 @@ import {
   ContextMenu,
   DropdownMenu,
   Ellipsis,
+  FolderKanban,
   GalleryVerticalEnd,
   ListChecks,
   MotionTooltip,
@@ -432,6 +433,7 @@ export type PageRailPage =
   | "providers"
   | "crm"
   | "marketplace"
+  | "projects"
   | "credits"
   | "settings";
 
@@ -466,6 +468,7 @@ export interface PageRailProps {
   onCrm?: ((button: HTMLElement) => void) | undefined;
   onCrmConnectors?: ((button: HTMLElement) => void) | undefined;
   onMarketplace?: (() => void) | undefined;
+  onProjects?: (() => void) | undefined;
   onCredits?: (() => void) | undefined;
   creditBalance?: number | undefined;
   onSettings: (button: HTMLElement) => void;
@@ -746,6 +749,17 @@ export function PageRail(props: PageRailProps) {
                 onClick={() => onMarketplace()()}
               >
                 <Store aria-hidden="true" />
+              </RailButton>
+            )}
+          </Show>
+          <Show when={props.onProjects}>
+            {(onProjects) => (
+              <RailButton
+                label={t("app.rail.projects")}
+                current={props.current === "projects"}
+                onClick={() => onProjects()()}
+              >
+                <FolderKanban aria-hidden="true" />
               </RailButton>
             )}
           </Show>

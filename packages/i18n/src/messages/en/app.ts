@@ -59,6 +59,7 @@ export const messages = defineMessages("app", {
   "app.rail.providers": "Providers",
   "app.rail.crm": "CRM",
   "app.rail.marketplace": "Marketplace",
+  "app.rail.projects": "Projects",
   "app.rail.settings": "Settings",
   "app.rail.settingsNotice": "Settings. {notice}",
   "app.rail.more": "More",

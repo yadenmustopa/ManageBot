@@ -4,6 +4,7 @@ import { createEffect, createMemo, createSignal, untrack } from "solid-js";
 import { appPort } from "../../app-port";
 import { createSimpleContext } from "../../simple-context";
 import { useAuth } from "../account/account-context";
+import { useProjects } from "../projects/project-context";
 import { useServerSettings } from "../servers/server-settings";
 import { useServers } from "../servers/servers-context";
 import { useSettings } from "../settings/settings-context";
@@ -18,6 +19,7 @@ export type WindowPage =
   | "library"
   | "crm"
   | "marketplace"
+  | "projects"
   | "settings"
   | "server-settings"
   | "credits"
@@ -43,6 +45,7 @@ const context = createSimpleContext({
   init: () => {
     const settings = useSettings();
     const serverSettings = useServerSettings();
+    const projects = useProjects();
     const usage = useUsage();
     const { activeServerId, hostStatus } = useServers();
     const { signedInAccount } = useAuth();
@@ -80,6 +83,7 @@ const context = createSimpleContext({
     };
 
     const basePage = createMemo<WindowPage>(() => {
+      if (projects.projectsOpen()) return "projects";
       if (serverSettings.serverSettingsOpen()) return "server-settings";
       if (settings.appSettingsOpen()) return "settings";
       if (settings.skillsMarketplaceOpen()) return "marketplace";
@@ -194,7 +198,16 @@ const context = createSimpleContext({
         settings.setAppSettingsOpen(false);
         serverSettings.setServerSettingsOpen(false);
         settings.setSkillsMarketplaceOpen(false);
+        projects.close();
         usage.dismissUsage();
+      },
+      openProjects() {
+        leavePricing();
+        closeCredits();
+        settings.setAppSettingsOpen(false);
+        serverSettings.setServerSettingsOpen(false);
+        settings.setSkillsMarketplaceOpen(false);
+        projects.open();
       },
       openTasks(source: HTMLElement | null) {
         leavePricing();
