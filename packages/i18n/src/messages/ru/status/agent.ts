@@ -113,6 +113,10 @@ export const messages = {
     "Память: сохранено {saved}, обновлено {updated}, забыто {forgotten}, не изменено {notChanged}, потому что другая ветка изменила их раньше.",
   "status.agent.mcpToolCall": "Запустить инструмент {tool} MCP-сервера {name}.",
   "status.agent.uiBlockClosedByMessage": "Закрыто новым сообщением",
+  "status.agent.location.field": "Ваше местоположение",
+  "status.agent.location.placeholder": "Город, адрес или место",
+  "status.agent.location.submit": "Поделиться",
+  "status.agent.location.shared": "Местоположение отправлено",
   "status.agent.nextStepContinues": "Агент остановился перед следующим шагом. Он продолжает ({current} из {limit}).",
   "status.agent.planContinues": "В плане есть незавершённые шаги. Агент продолжает ({current} из {limit}).",
   "status.agent.planStopped":
@@ -120,8 +124,4 @@ export const messages = {
   "status.agent.compactionContinues": "Соединение прервалось, пока агент сжимал контекст. Агент продолжает.",
   "status.agent.providerExitContinues": "Агент остановился, не закончив ответ. Агент продолжает.",
   "status.agent.branchTitle": "Ответвлённый чат",
-  "status.agent.location.field": "Ваше местоположение",
-  "status.agent.location.placeholder": "Город, адрес или место",
-  "status.agent.location.submit": "Поделиться",
-  "status.agent.location.shared": "Местоположение отправлено",
 } as const satisfies PartialTranslation<typeof source>;

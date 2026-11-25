@@ -114,10 +114,12 @@ import { notificationIpcHandlers } from "./ipc/notification-handlers";
 import { onePasswordConnectorIpcHandlers } from "./ipc/onepassword-connector-handlers";
 import { passwordManagersIpcHandlers } from "./ipc/password-managers-handlers";
 import { pluginIpcHandlers } from "./ipc/plugin-handlers";
+import { projectIpcHandlers } from "./ipc/project-handlers";
 import { providerAdminIpcHandlers } from "./ipc/provider-admin-handlers";
 import { providerDetectionIpcHandlers } from "./ipc/provider-detection-handlers";
 import { providerIpcHandlers } from "./ipc/provider-handlers";
 import { referralIpcHandlers } from "./ipc/referral-handlers";
+import { repositoryIpcHandlers } from "./ipc/repository-handlers";
 import { routineFeedIpcHandlers } from "./ipc/routine-feed-handlers";
 import { routineIpcHandlers } from "./ipc/routine-handlers";
 import { routineResultIpcHandlers } from "./ipc/routine-result-handlers";
@@ -786,6 +788,8 @@ function registerIpcHandlers({
   referral,
   license,
   credits,
+  projects,
+  repositories,
   hostedServers,
   localServers,
   routineFeed,
@@ -931,6 +935,8 @@ function registerIpcHandlers({
     ...referralIpcHandlers({ referral }),
     ...licenseIpcHandlers({ license }),
     ...creditsIpcHandlers({ credits }),
+    ...projectIpcHandlers({ projects, repositories }),
+    ...repositoryIpcHandlers({ repositories }),
     ...routineFeedIpcHandlers({ routineFeed }),
     ...eventsIpcHandlers({ events, remoteServers }),
     ...hostedServerIpcHandlers({ hostedServers }),

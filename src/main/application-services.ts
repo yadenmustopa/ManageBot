@@ -114,6 +114,8 @@ import { OpenBotDatabase } from "../backend/openbot-database";
 import { PASSWORD_MANAGER_BRANDS } from "../backend/password-vault";
 import { passwordVaultRouter } from "../backend/password-vault-router";
 import { perfTime } from "../backend/perf-probe-hooks";
+import { ProjectStore } from "../backend/project/project-store";
+import { RepositoryStore } from "../backend/project/repository-store";
 import { sweepProviderTemp } from "../backend/provider-temp";
 import { routineFlowRoutines } from "../backend/routine-flows/routine-flow-routines";
 import { RoutineFlowStore } from "../backend/routine-flows/routine-flow-store";
@@ -762,6 +764,8 @@ export interface ApplicationServices {
   referral: ReferralDesktopService;
   license: LicenseDesktopService;
   credits: CreditsDesktopService;
+  projects: ProjectStore;
+  repositories: RepositoryStore;
   hostedServers: HostedServerDesktopService;
   routineFeed: RoutineFeedServer;
   events: HostEventsService;
@@ -1274,6 +1278,9 @@ export async function createApplicationServices({
   const referral = new ReferralDesktopService(centralAuth, openLink);
   const license = new LicenseDesktopService(centralAuth, openLink);
   const credits = new CreditsDesktopService(centralAuth, openLink);
+  const projects = new ProjectStore(store.database);
+  const repositories = new RepositoryStore(store.database);
+  projects.ensureDefaultWorkspace();
   const hostedServers = new HostedServerDesktopService(
     withHostingDeveloperKey(centralAuth, hostingDeveloperKey),
     openLink,
@@ -4453,6 +4460,8 @@ export async function createApplicationServices({
     referral,
     license,
     credits,
+    projects,
+    repositories,
     hostedServers,
     routineFeed,
     events,

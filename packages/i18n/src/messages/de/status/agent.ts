@@ -115,6 +115,10 @@ export const messages = {
     "Erinnerungen: {saved} gespeichert, {updated} aktualisiert, {forgotten} vergessen, {notChanged} nicht geändert, weil ein anderer Thread sie zuerst geändert hat.",
   "status.agent.mcpToolCall": "Das Tool {tool} des MCP-Servers {name} ausführen.",
   "status.agent.uiBlockClosedByMessage": "Durch neue Nachricht geschlossen",
+  "status.agent.location.field": "Dein Standort",
+  "status.agent.location.placeholder": "Stadt, Adresse oder Ort",
+  "status.agent.location.submit": "Teilen",
+  "status.agent.location.shared": "Standort geteilt",
   "status.agent.nextStepContinues":
     "Der Agent hat vor dem nächsten Schritt angehalten. Er macht weiter ({current} von {limit}).",
   "status.agent.planContinues": "Der Plan hat offene Schritte. Der Agent macht weiter ({current} von {limit}).",
@@ -125,8 +129,4 @@ export const messages = {
   "status.agent.providerExitContinues":
     "Der Agent hat aufgehört, bevor seine Antwort fertig war. Der Agent macht weiter.",
   "status.agent.branchTitle": "Abgezweigter Chat",
-  "status.agent.location.field": "Dein Standort",
-  "status.agent.location.placeholder": "Stadt, Adresse oder Ort",
-  "status.agent.location.submit": "Teilen",
-  "status.agent.location.shared": "Standort geteilt",
 } as const satisfies PartialTranslation<typeof source>;

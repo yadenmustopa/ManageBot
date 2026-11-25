@@ -694,6 +694,19 @@ import type {
 import type { MarketplaceListingLink } from "./marketplace-links";
 import type { AccountSession, MobileConnectedDevice, MobileConnectLink, MobileConnectTicket } from "./mobile-connect";
 import type { AcceptedOwnerTransfer, OwnerTransfer } from "./owner-transfer";
+import type {
+  CreateProjectInput,
+  DetachRepositoryInput,
+  ImportRepositoryInput,
+  OpenBotProject,
+  OpenBotRepository,
+  OpenBotWorkspace,
+  ProjectDashboardSummary,
+  ProjectIdInput,
+  RepositoryIdInput,
+  UpdateProjectInput,
+  WorkspaceIdInput,
+} from "./project";
 import type { ReferralPageRequest, ReferralState } from "./referral";
 import type { AgentActiveQueues } from "./team-protocol/agent-active-queues-v1";
 
@@ -1413,6 +1426,23 @@ export const IPC_ENDPOINTS = {
     transfer: request<CreditTransferRequest, CreditsState>()("credits:transfer"),
     redeem: request<CreditRedeemRequest, CreditRedeemResult>()("credits:redeem"),
   },
+  projects: {
+    ensureDefaultWorkspace: request<undefined, OpenBotWorkspace>()("projects:ensure-default-workspace"),
+    listWorkspaces: request<undefined, OpenBotWorkspace[]>()("projects:list-workspaces"),
+    listProjects: request<WorkspaceIdInput, OpenBotProject[]>()("projects:list-projects"),
+    getProject: request<ProjectIdInput, OpenBotProject | null>()("projects:get-project"),
+    createProject: request<CreateProjectInput, OpenBotProject>()("projects:create"),
+    updateProject: request<UpdateProjectInput, OpenBotProject>()("projects:update"),
+    archiveProject: request<ProjectIdInput, void>()("projects:archive"),
+    restoreProject: request<ProjectIdInput, void>()("projects:restore"),
+    getDashboardSummary: request<ProjectIdInput, ProjectDashboardSummary>()("projects:get-dashboard-summary"),
+  },
+  repositories: {
+    importRepository: request<ImportRepositoryInput, OpenBotRepository>()("repositories:import"),
+    listForProject: request<ProjectIdInput, OpenBotRepository[]>()("repositories:list-for-project"),
+    refreshRepository: request<RepositoryIdInput, OpenBotRepository>()("repositories:refresh"),
+    detachRepository: request<DetachRepositoryInput, void>()("repositories:detach"),
+  },
   license: {
     getState: request<undefined, LicenseState>()("license:get-state"),
     openCheckout: request<LicenseCheckoutRequest, void>()("license:open-checkout"),
@@ -2093,6 +2123,8 @@ export const IPC_GROUP_PATHS = {
   billing: "billing",
   referral: "referral",
   credits: "credits",
+  projects: "projects",
+  repositories: "repositories",
   license: "license",
   hostedServers: "hostedServers",
   localServers: "localServers",

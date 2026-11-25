@@ -495,4 +495,13 @@ export const messages = defineMessages("error.backend", {
   "error.backend.taskRemoteUnsupported": "Tasks are only available for agents on this computer.",
   "error.backend.taskMessageFailed": "OpenBot could not send the message to the task. Try again later.",
   "error.backend.taskStartFailed": "OpenBot could not start the task. Do the work in this turn instead.",
+  "error.backend.projectWorkspaceGone": "This workspace no longer exists.",
+  "error.backend.projectGone": "This project no longer exists.",
+  "error.backend.projectLimit": "A workspace can have at most {limit} projects.",
+  "error.backend.repositoryGone": "This repository is no longer registered.",
+  "error.backend.repositoryPathRequired": "Choose a folder to import.",
+  "error.backend.repositoryPathMissing": "This folder does not exist.",
+  "error.backend.repositoryPathNotDirectory": "Choose a folder, not a file.",
+  "error.backend.repositoryNotGitWorkingTree": "This folder is not a Git working tree.",
+  "error.backend.repositoryAlreadyInProject": "This repository is already in the project.",
 });

@@ -259,6 +259,7 @@ import { createMockLinkAccount } from "./mock-link-account";
 import { createMockMessaging } from "./mock-messaging";
 import { createMockOnePasswordConnector } from "./mock-onepassword-connector";
 import { createMockPasswordManagers } from "./mock-password-managers";
+import { createMockProjectWorkspace } from "./mock-project";
 import { createMockProviderRuntimes, type MockProviderRuntimeOptions } from "./mock-provider-runtimes";
 import { createMockReferral } from "./mock-referral";
 import { mockRoutineCalendar } from "./mock-routine-calendar";
@@ -1760,6 +1761,7 @@ export function createMockOpenBot(options: MockOpenBotOptions = {}): MockOpenBot
     referral: createMockReferral(),
     license: createMockLicense(),
     credits: createMockCredits(),
+    ...createMockProjectWorkspace(),
     routineFeed: createMockRoutineFeed(),
     hostedServers: createMockHostedServers(billingPlans),
     customProviders: {

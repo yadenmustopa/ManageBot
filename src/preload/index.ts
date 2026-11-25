@@ -335,6 +335,16 @@ import {
   decodePasswordManagerResponse,
   decodePasswordManagerResponses,
 } from "./password-manager-decoding";
+import {
+  decodeProject,
+  decodeProjectDashboardSummary,
+  decodeProjectList,
+  decodeProjectOrNull,
+  decodeRepository,
+  decodeRepositoryList,
+  decodeWorkspace,
+  decodeWorkspaceList,
+} from "./project-decoding";
 import { decodeProviderRuntimeSnapshot } from "./provider-runtime";
 import {
   decodeRoutineResultDeliveries,
@@ -1162,6 +1172,23 @@ const openbotApi: OpenBotDesktopApi = {
     openCheckout: decodeVoid,
     transfer: decodeCreditsState,
     redeem: decodeCreditRedeemResult,
+  }),
+  projects: bridgeGroup(IPC_ENDPOINTS.projects, {
+    ensureDefaultWorkspace: decodeWorkspace,
+    listWorkspaces: decodeWorkspaceList,
+    listProjects: decodeProjectList,
+    getProject: decodeProjectOrNull,
+    createProject: decodeProject,
+    updateProject: decodeProject,
+    archiveProject: decodeVoid,
+    restoreProject: decodeVoid,
+    getDashboardSummary: decodeProjectDashboardSummary,
+  }),
+  repositories: bridgeGroup(IPC_ENDPOINTS.repositories, {
+    importRepository: decodeRepository,
+    listForProject: decodeRepositoryList,
+    refreshRepository: decodeRepository,
+    detachRepository: decodeVoid,
   }),
   hostedServers: bridgeGroup(IPC_ENDPOINTS.hostedServers, {
     lifecycle: decodeVoid,
