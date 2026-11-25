@@ -16,8 +16,14 @@ export interface ProjectsState {
   importOpen: boolean;
 }
 
+// `ipcRenderer.invoke` rejects with Electron's own wrapping, e.g. "Error invoking remote method
+// 'repositories:import': Error: This folder does not exist." Strip it so the dialog shows the
+// backend's actual i18n message, not Electron's transport-level framing.
+const ELECTRON_IPC_ERROR_PREFIX = /^Error invoking remote method '[^']*':\s*(?:[A-Za-z]*Error:\s*)?/;
+
 function errorMessage(cause: unknown): string {
-  return cause instanceof Error ? cause.message : String(cause);
+  const raw = cause instanceof Error ? cause.message : String(cause);
+  return raw.replace(ELECTRON_IPC_ERROR_PREFIX, "");
 }
 
 /** Owns the project/repository list state for the Projects page (PRD FR-02/FR-03/FR-13). */

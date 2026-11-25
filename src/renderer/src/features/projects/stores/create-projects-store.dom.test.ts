@@ -176,6 +176,20 @@ describe("createProjectsStore", () => {
     disposeReloaded();
   });
 
+  it("strips Electron's IPC wrapping from a failed import, showing only the backend's message", async () => {
+    const { port } = fakePort();
+    port.repositories.importRepository = async () => {
+      throw new Error("Error invoking remote method 'repositories:import': Error: This folder does not exist.");
+    };
+    const { store, dispose } = withStore(port);
+    await store.load();
+    await store.createProject({ name: "Mabar Desktop", description: "" });
+    const ok = await store.importRepository("/does/not/exist");
+    expect(ok).toBe(false);
+    expect(store.state.error).toBe("This folder does not exist.");
+    dispose();
+  });
+
   it("detaching a repository removes it from the project without affecting other projects", async () => {
     const { port } = fakePort();
     const { store, dispose } = withStore(port);
