@@ -22,6 +22,7 @@ export const messages = defineMessages("project", {
   "project.dashboard.importRepository": "Import repository",
   "project.dashboard.repositories": "Repositories",
   "project.dashboard.noRepositories": "No repositories yet.",
+  "project.repository.newSession": "New coding session",
   "project.repository.refresh": "Refresh status",
   "project.repository.remove": "Remove from project",
   "project.repository.health.available": "Available",

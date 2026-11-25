@@ -25,6 +25,8 @@ import { useTurns } from "../../turns";
 import { useAgentThreads } from "../agent-threads/agent-threads-context";
 import { useConversation } from "../conversation/conversation-context";
 import { agentConversationKey } from "../conversation/conversation-keys";
+import { projectPort } from "../projects/project-port";
+import { consumePendingRepositorySession } from "../projects/project-session-request";
 import { useServers } from "../servers/servers-context";
 import { useSidebar } from "../sidebar/sidebar-context";
 import { type NewAgentDraft, newAgentInput } from "./agent-create-input";
@@ -84,6 +86,26 @@ const AgentActions = createSimpleContext({
       return newAgent;
     }
 
+    // PRD 7.5 "new session flow", reduced scope: when the agent being created was started from
+    // `ProjectDashboard`'s "New coding session" action (`requestRepositorySession`), scope the new
+    // agent's thread to that repository once it exists. Every other agent-creation path (the vast
+    // majority) has no pending request, so this is a no-op for them — fully additive.
+    async function applyPendingRepositorySession(threadId: string | null): Promise<void> {
+      const pending = consumePendingRepositorySession();
+      if (!pending || !threadId) return;
+      try {
+        await projectPort().threadRepositoryScope.setScope({
+          threadId,
+          projectId: pending.projectId,
+          repositoryId: pending.repositoryId,
+        });
+      } catch {
+        // Best-effort: a failure here only means the new conversation won't show its repository
+        // badge yet (RepositoryContextBadge re-fetches per thread, so a retry later still works).
+        // It must never fail or roll back the agent creation that already succeeded.
+      }
+    }
+
     async function createAgent(draft: FirstAgentDraft = agentSetupDraft()) {
       if (creatingAgent()) return;
       const analytics = desktopAnalytics.scope();
@@ -93,6 +115,7 @@ const AgentActions = createSimpleContext({
       try {
         const newAgent = addNewAgent(await requestNewAgent(submitted));
         openCreatedAgent(newAgent.id);
+        await applyPendingRepositorySession(newAgent.threadId);
         const properties = analyticsAgentProperties(newAgent.id);
         analytics.track("agent_action", { action: "create", result: "succeeded", ...(properties ?? {}) });
       } catch (error) {

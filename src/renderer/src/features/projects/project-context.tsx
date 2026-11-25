@@ -1,6 +1,7 @@
 import { createSignal, onSettled } from "solid-js";
 import { createSimpleContext } from "../../simple-context";
 import { projectPort } from "./project-port";
+import { requestRepositorySession } from "./project-session-request";
 import { createProjectsStore } from "./stores/create-projects-store";
 
 // Module-level, like `appSettingsOpen` in settings-context.tsx: Projects is a single app-wide
@@ -17,6 +18,7 @@ const Projects = createSimpleContext({
       projectsOpen,
       open: () => setProjectsOpen(true),
       close: () => setProjectsOpen(false),
+      requestRepositorySession,
     };
   },
 });

@@ -11,12 +11,14 @@ import {
   ItemDescription,
   ItemGroup,
   ItemTitle,
+  MessageSquare,
   RefreshCw,
   Text,
   X,
 } from "@openbot/ui";
 import { useText } from "@openbot/ui/text";
 import { For, Show } from "solid-js";
+import { useAgents } from "../agents/agents-context";
 import { useProjects } from "./project-context";
 
 function healthLabel(t: ReturnType<typeof useText>["t"], health: RepositoryHealth): string {
@@ -36,8 +38,14 @@ function healthLabel(t: ReturnType<typeof useText>["t"], health: RepositoryHealt
 
 export function ProjectDashboard() {
   const projects = useProjects();
+  const agents = useAgents();
   const { t } = useText();
   const activeProject = () => projects.state.projects.find((project) => project.id === projects.state.activeProjectId);
+
+  function startCodingSession(projectId: string, repositoryId: string) {
+    projects.requestRepositorySession(projectId, repositoryId);
+    agents.openAgentSetup();
+  }
 
   return (
     <section class="project-dashboard" aria-label={t("project.dashboard.label")}>
@@ -90,6 +98,13 @@ export function ProjectDashboard() {
                         </ItemDescription>
                       </ItemContent>
                       <ItemActions>
+                        <IconButton
+                          label={t("project.repository.newSession")}
+                          variant="ghost"
+                          onClick={() => startCodingSession(project().id, repository.id)}
+                        >
+                          <MessageSquare />
+                        </IconButton>
                         <IconButton
                           label={t("project.repository.refresh")}
                           variant="ghost"
