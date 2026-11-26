@@ -112,6 +112,22 @@
   gap: var(--openbot-space-2, 8px);
 }
 
+.project-composer-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.project-composer-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--openbot-space-2, 8px);
+}
+
+.project-composer-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .project-dashboard-header .ui-heading {
   margin: 0;
 }

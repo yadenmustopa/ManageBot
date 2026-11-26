@@ -27,6 +27,7 @@ export interface AgentExecutionContext {
   readonly writableRoots: readonly string[];
   readonly repositoryId: string | null;
   readonly projectFolders?: readonly string[];
+  readonly projectInstructions?: { name: string; description: string } | null;
 }
 
 type ScopableAgent = Pick<AgentSummary, "id" | "additionalFolders" | "workspacePath">;
@@ -95,6 +96,7 @@ export const resolveAgentExecutionContext = Effect.fn("resolveAgentExecutionCont
       writableRoots: [worktree.canonicalPath, sharedRoot, ...existingAgentFolders(agent)],
       repositoryId: repository.id,
       projectFolders: yield* projectFolderPaths(database, repository.id, worktree.canonicalPath),
+      projectInstructions: scope.projectId ? databaseProjectInstructions(database, scope.projectId) : null,
     } satisfies AgentExecutionContext;
   }
 
@@ -111,8 +113,25 @@ export const resolveAgentExecutionContext = Effect.fn("resolveAgentExecutionCont
     writableRoots: [repository.canonicalPath, sharedRoot, ...existingAgentFolders(agent)],
     repositoryId: repository.id,
     projectFolders: yield* projectFolderPaths(database, repository.id, repository.canonicalPath),
+    projectInstructions: scope.projectId ? databaseProjectInstructions(database, scope.projectId) : null,
   } satisfies AgentExecutionContext;
 });
+
+function databaseProjectInstructions(
+  database: OpenBotDatabase,
+  projectId: string,
+): { name: string; description: string } | null {
+  const row = databaseRow(
+    database.connection
+      .prepare("SELECT name, description FROM projection_projects WHERE project_id = ?")
+      .get(projectId),
+  );
+  if (!row) return null;
+  return {
+    name: requiredStringColumn(row, "name"),
+    description: requiredStringColumn(row, "description"),
+  };
+}
 
 const projectFolderPaths = Effect.fn("projectFolderPaths")(function* (
   database: OpenBotDatabase,

@@ -679,6 +679,10 @@ export class ThreadLifecycle {
         mcpServers,
         instructionsFile,
         yield* this.#workspaceSkills(agent, client),
+        {
+          instructions: executionContext.projectInstructions ?? null,
+          folders: executionContext.projectFolders ?? [],
+        },
       ),
       serviceName: "openbot",
       dynamicTools: visibleDynamicTools(client.provider),
@@ -1179,6 +1183,10 @@ export class ThreadLifecycle {
     mcpServers: readonly McpServerConfig[],
     instructionsFile: InstructionsFileInPrompt,
     workspaceSkills: readonly string[] = [],
+    projectContext?: {
+      instructions: { name: string; description: string } | null;
+      folders: readonly string[];
+    },
   ): DynamicRecord {
     const memoryEnabled = agentMemoryEnabled(agent);
     const memories = memoryEnabled ? this.#memories.essentialFor(agent.id) : [];
@@ -1227,7 +1235,7 @@ export class ThreadLifecycle {
       instructionsFileName: instructionsFile.fileName,
       instructionsFile: instructionsFile.file,
     };
-    const instructions = developerInstructions(
+    const baseInstructions = developerInstructions(
       agent,
       this.#store.sharedRoot,
       memories,
@@ -1235,6 +1243,8 @@ export class ThreadLifecycle {
       this.#store.agentDefaults(),
       options,
     );
+    const projectSuffix = formatProjectInstructionsSuffix(projectContext);
+    const instructions = projectSuffix ? `${baseInstructions}\n\n${projectSuffix}` : baseInstructions;
     return client.turnContext === true
       ? {
           developerInstructions: instructions,
@@ -1340,6 +1350,10 @@ export class ThreadLifecycle {
         configs,
         instructionsFile,
         yield* this.#workspaceSkills(agent, client),
+        {
+          instructions: executionContext.projectInstructions ?? null,
+          folders: executionContext.projectFolders ?? [],
+        },
       ),
       ...(client.provider === "codex" ? {} : { dynamicTools: visibleDynamicTools(client.provider) }),
       ...(yield* this.codexConfigEffect(
@@ -1728,4 +1742,21 @@ function approvalRevoked(session: CodexToolApprovals, current: CodexToolApproval
 
 function missingSessionFile(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "ENOENT";
+}
+
+function formatProjectInstructionsSuffix(projectContext?: {
+  instructions: { name: string; description: string } | null;
+  folders: readonly string[];
+}): string {
+  if (!projectContext) return "";
+  const lines: string[] = [];
+  if (projectContext.instructions) {
+    lines.push(`Project: ${projectContext.instructions.name}`);
+    const description = projectContext.instructions.description.trim();
+    if (description) lines.push(`Project instructions:\n${description}`);
+  }
+  if (projectContext.folders.length > 0) {
+    lines.push(`Project folders:\n${projectContext.folders.map((folder) => `- ${folder}`).join("\n")}`);
+  }
+  return lines.join("\n\n");
 }

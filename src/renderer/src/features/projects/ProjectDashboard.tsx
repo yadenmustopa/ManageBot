@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
   Text,
+  Textarea,
   Trash2,
   X,
 } from "@openbot/ui";
@@ -99,7 +100,11 @@ export function ProjectDashboard() {
   const windowPage = useWindowPage();
   const { t } = useText();
   const [selectedChannelId, setSelectedChannelId] = createSignal("");
+  const [composerText, setComposerText] = createSignal("");
+  const [composerSending, setComposerSending] = createSignal(false);
   const activeProject = () => projects.state.projects.find((project) => project.id === projects.state.activeProjectId);
+  const defaultProjectChannel = () =>
+    projects.state.channels.find((link) => link.isDefault) ?? projects.state.channels[0] ?? null;
   const availableChannels = () => {
     const attached = new Set(projects.state.channels.map((link) => link.channelId));
     return channels.state.channels.filter((channel) => !channel.archived && !attached.has(channel.id));
@@ -109,6 +114,33 @@ export function ProjectDashboard() {
   function openProjectChannel(channelId: string) {
     void channels.open(channelId);
     windowPage.showAgents();
+  }
+
+  async function submitProjectPrompt() {
+    const body = composerText().trim();
+    const project = activeProject();
+    if (!body || !project || composerSending()) return;
+    const channelLink = defaultProjectChannel();
+    if (!channelLink) {
+      startProjectSession(project.id);
+      return;
+    }
+    setComposerSending(true);
+    try {
+      await channels.send({
+        type: "send",
+        channelId: channelLink.channelId,
+        text: body,
+        recipientAgentId: null,
+        replyToMessageId: null,
+        attachmentDraftIds: [],
+        operationId: crypto.randomUUID(),
+      });
+      setComposerText("");
+      openProjectChannel(channelLink.channelId);
+    } finally {
+      setComposerSending(false);
+    }
   }
 
   function startCodingSession(projectId: string, repositoryId: string, worktreeId: string | null = null) {
@@ -172,6 +204,27 @@ export function ProjectDashboard() {
                 </Text>
               </div>
             </div>
+            <section class="project-composer-section">
+              <form
+                class="project-composer-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void submitProjectPrompt();
+                }}
+              >
+                <Textarea
+                  value={composerText()}
+                  placeholder={t("project.composer.placeholder")}
+                  disabled={composerSending()}
+                  onInput={(event) => setComposerText(event.currentTarget.value)}
+                />
+                <div class="project-composer-actions">
+                  <Button type="submit" disabled={composerSending() || composerText().trim().length === 0}>
+                    {t("project.composer.send")}
+                  </Button>
+                </div>
+              </form>
+            </section>
             <ItemGroup class="project-repository-list">
               <Show
                 when={projects.state.repositories.length > 0}

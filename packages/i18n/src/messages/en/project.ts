@@ -111,4 +111,7 @@ export const messages = defineMessages("project", {
   "project.channels.setDefault": "Set default",
   "project.channels.open": "Open",
   "project.channels.remove": "Disconnect",
+  "project.composer.title": "Start a session",
+  "project.composer.placeholder": "Ask anything or start work in this project...",
+  "project.composer.send": "Send",
 });
