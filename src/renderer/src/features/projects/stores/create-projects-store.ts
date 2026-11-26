@@ -1,4 +1,6 @@
 import type {
+  DevelopmentTaskStatus,
+  OpenBotDevelopmentTask,
   OpenBotProject,
   OpenBotRepository,
   OpenBotWorktree,
@@ -14,12 +16,14 @@ export interface ProjectsState {
   activeProjectId: string | null;
   repositories: OpenBotRepository[];
   worktreesByRepository: Record<string, OpenBotWorktree[]>;
+  tasks: OpenBotDevelopmentTask[];
   dashboard: ProjectDashboardSummary | null;
   loading: boolean;
   error: string | null;
   pending: boolean;
   createOpen: boolean;
   importOpen: boolean;
+  createTaskOpen: boolean;
   createWorktreeRepositoryId: string | null;
   dirtyWorktreeToRemove: OpenBotWorktree | null;
 }
@@ -38,12 +42,14 @@ export function createProjectsStore(port: () => ProjectPort) {
     activeProjectId: null,
     repositories: [],
     worktreesByRepository: {},
+    tasks: [],
     dashboard: null,
     loading: false,
     error: null,
     pending: false,
     createOpen: false,
     importOpen: false,
+    createTaskOpen: false,
     createWorktreeRepositoryId: null,
     dirtyWorktreeToRemove: null,
   });
@@ -51,9 +57,10 @@ export function createProjectsStore(port: () => ProjectPort) {
   let repositoryLoadToken = 0;
 
   async function loadRepositories(projectId: string, token: number) {
-    const [repositories, dashboard] = await Promise.all([
+    const [repositories, dashboard, tasks] = await Promise.all([
       port().repositories.listForProject({ projectId }),
       port().projects.getDashboardSummary({ projectId }),
+      port().developmentTasks.listForProject({ projectId }),
     ]);
     const worktreeEntries =
       repositories.length === 0
@@ -68,6 +75,7 @@ export function createProjectsStore(port: () => ProjectPort) {
       if (draft.activeProjectId !== projectId || token !== repositoryLoadToken) return;
       draft.repositories = repositories;
       draft.worktreesByRepository = Object.fromEntries(worktreeEntries);
+      draft.tasks = tasks;
       draft.dashboard = dashboard;
     });
   }
@@ -78,6 +86,7 @@ export function createProjectsStore(port: () => ProjectPort) {
       draft.activeProjectId = projectId;
       draft.repositories = [];
       draft.worktreesByRepository = {};
+      draft.tasks = [];
       draft.dashboard = null;
     });
     writeActiveProjectId(projectId);
@@ -301,6 +310,78 @@ export function createProjectsStore(port: () => ProjectPort) {
     }
   }
 
+  async function createTask(input: {
+    title: string;
+    description?: string;
+    acceptanceCriteria?: string;
+    repositoryId?: string | null;
+  }): Promise<boolean> {
+    const projectId = state.activeProjectId;
+    if (!projectId) return false;
+    setState((draft) => {
+      draft.pending = true;
+      draft.error = null;
+    });
+    try {
+      const task = await port().developmentTasks.create({
+        projectId,
+        repositoryId: input.repositoryId ?? null,
+        title: input.title,
+        description: input.description,
+        acceptanceCriteria: input.acceptanceCriteria,
+      });
+      setState((draft) => {
+        if (draft.activeProjectId !== projectId) return;
+        ++repositoryLoadToken;
+        draft.tasks = [...draft.tasks, task];
+        draft.pending = false;
+        draft.createTaskOpen = false;
+      });
+      return true;
+    } catch (cause) {
+      setState((draft) => {
+        draft.pending = false;
+        draft.error = errorMessage(cause);
+      });
+      return false;
+    }
+  }
+
+  async function updateTaskStatus(
+    taskId: string,
+    status: DevelopmentTaskStatus,
+    testEvidence?: string | null,
+  ): Promise<boolean> {
+    setState((draft) => {
+      draft.error = null;
+    });
+    try {
+      const updated = await port().developmentTasks.update({ taskId, status, testEvidence });
+      setState((draft) => {
+        draft.tasks = draft.tasks.map((task) => (task.id === taskId ? updated : task));
+      });
+      return true;
+    } catch (cause) {
+      setState((draft) => {
+        draft.error = errorMessage(cause);
+      });
+      return false;
+    }
+  }
+
+  async function archiveTask(taskId: string): Promise<void> {
+    try {
+      await port().developmentTasks.archive({ taskId });
+      setState((draft) => {
+        draft.tasks = draft.tasks.filter((task) => task.id !== taskId);
+      });
+    } catch (cause) {
+      setState((draft) => {
+        draft.error = errorMessage(cause);
+      });
+    }
+  }
+
   return {
     state,
     load,
@@ -313,6 +394,9 @@ export function createProjectsStore(port: () => ProjectPort) {
     refreshWorktree,
     removeWorktree,
     confirmForceRemoveWorktree,
+    createTask,
+    updateTaskStatus,
+    archiveTask,
     cancelForceRemoveWorktree: () =>
       setState((draft) => {
         draft.dirtyWorktreeToRemove = null;
@@ -334,6 +418,16 @@ export function createProjectsStore(port: () => ProjectPort) {
     closeImport: () =>
       setState((draft) => {
         draft.importOpen = false;
+        draft.error = null;
+      }),
+    openCreateTask: () =>
+      setState((draft) => {
+        draft.createTaskOpen = true;
+        draft.error = null;
+      }),
+    closeCreateTask: () =>
+      setState((draft) => {
+        draft.createTaskOpen = false;
         draft.error = null;
       }),
     openCreateWorktree: (repositoryId: string) =>

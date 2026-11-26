@@ -219,3 +219,30 @@
   gap: var(--openbot-space-1, 4px);
   margin-inline-start: var(--openbot-space-2, 8px);
 }
+
+.project-tasks-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--openbot-space-3, 12px);
+  border-top: 1px solid var(--openbot-border);
+  padding-top: var(--openbot-space-4, 16px);
+}
+
+.project-tasks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--openbot-space-2, 8px);
+}
+
+.project-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--openbot-space-2, 8px);
+}
+
+.project-task-item {
+  display: flex;
+  align-items: center;
+  gap: var(--openbot-space-3, 12px);
+}

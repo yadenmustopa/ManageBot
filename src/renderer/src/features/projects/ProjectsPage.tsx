@@ -2,6 +2,7 @@ import { PageHeader } from "@openbot/ui/features/window/PageHeader";
 import { useText } from "@openbot/ui/text";
 import { createPageHeaderFrame } from "../window/page-header-frame";
 import { CreateProjectDialog } from "./CreateProjectDialog";
+import { CreateTaskDialog } from "./CreateTaskDialog";
 import { CreateWorktreeDialog } from "./CreateWorktreeDialog";
 import { ImportRepositoryDialog } from "./ImportRepositoryDialog";
 import { ProjectDashboard } from "./ProjectDashboard";
@@ -23,6 +24,7 @@ export function ProjectsPage(props: { onBack: () => void }) {
       <ImportRepositoryDialog />
       <CreateWorktreeDialog />
       <RemoveWorktreeDialog />
+      <CreateTaskDialog />
     </div>
   );
 }

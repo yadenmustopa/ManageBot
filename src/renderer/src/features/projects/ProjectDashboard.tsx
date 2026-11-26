@@ -1,4 +1,4 @@
-import type { RepositoryHealth, WorktreeLifecycleStatus } from "@openbot/contracts/project";
+import type { DevelopmentTaskStatus, RepositoryHealth, WorktreeLifecycleStatus } from "@openbot/contracts/project";
 import {
   Button,
   FolderGit2,
@@ -46,6 +46,33 @@ function worktreeStatusLabel(t: ReturnType<typeof useText>["t"], status: Worktre
       return t("project.worktree.status.stale");
     case "archived":
       return t("project.worktree.status.archived");
+  }
+}
+
+function taskStatusLabel(t: ReturnType<typeof useText>["t"], status: DevelopmentTaskStatus): string {
+  switch (status) {
+    case "backlog":
+      return t("project.tasks.status.backlog");
+    case "ready":
+      return t("project.tasks.status.ready");
+    case "planning":
+      return t("project.tasks.status.planning");
+    case "in-progress":
+      return t("project.tasks.status.in-progress");
+    case "testing":
+      return t("project.tasks.status.testing");
+    case "in-review":
+      return t("project.tasks.status.in-review");
+    case "changes-requested":
+      return t("project.tasks.status.changes-requested");
+    case "blocked":
+      return t("project.tasks.status.blocked");
+    case "ready-to-merge":
+      return t("project.tasks.status.ready-to-merge");
+    case "done":
+      return t("project.tasks.status.done");
+    case "cancelled":
+      return t("project.tasks.status.cancelled");
   }
 }
 
@@ -193,6 +220,59 @@ export function ProjectDashboard() {
                 </For>
               </Show>
             </ItemGroup>
+            <section class="project-tasks-section">
+              <header class="project-tasks-header">
+                <Heading as="h2" size="md">
+                  {t("project.tasks.title")}
+                </Heading>
+                <Button variant="outline" onClick={projects.openCreateTask}>
+                  {t("project.tasks.new")}
+                </Button>
+              </header>
+              <ItemGroup class="project-task-list">
+                <Show
+                  when={projects.state.tasks.length > 0}
+                  fallback={<p class="project-dashboard-empty">{t("project.tasks.empty")}</p>}
+                >
+                  <For each={projects.state.tasks}>
+                    {(task) => (
+                      <Item class="project-task-item">
+                        <ItemContent>
+                          <ItemTitle>{task.title}</ItemTitle>
+                          <Show when={task.description}>
+                            <ItemDescription>{task.description}</ItemDescription>
+                          </Show>
+                          <ItemDescription class="project-repository-meta">
+                            <span>{task.priority.toUpperCase()}</span>
+                            <span>{taskStatusLabel(t, task.status)}</span>
+                          </ItemDescription>
+                        </ItemContent>
+                        <ItemActions>
+                          <Show when={task.repositoryId}>
+                            {(repoId) => (
+                              <IconButton
+                                label={t("project.tasks.action.startSession")}
+                                variant="ghost"
+                                onClick={() => startCodingSession(project().id, repoId(), task.worktreeId)}
+                              >
+                                <MessageSquare />
+                              </IconButton>
+                            )}
+                          </Show>
+                          <IconButton
+                            label={t("project.tasks.action.archive")}
+                            variant="ghost"
+                            onClick={() => void projects.archiveTask(task.id)}
+                          >
+                            <Trash2 />
+                          </IconButton>
+                        </ItemActions>
+                      </Item>
+                    )}
+                  </For>
+                </Show>
+              </ItemGroup>
+            </section>
           </>
         )}
       </Show>

@@ -143,6 +143,67 @@ function fakePort(): { port: ProjectPort; dispose: () => void } {
       }),
       remove: async () => {},
     },
+    developmentTasks: {
+      create: async ({
+        projectId,
+        repositoryId,
+        parentTaskId,
+        title,
+        description,
+        acceptanceCriteria,
+        taskType,
+        priority,
+      }) => ({
+        id: `task-${title}`,
+        projectId,
+        repositoryId: repositoryId ?? null,
+        parentTaskId: parentTaskId ?? null,
+        title,
+        description: description ?? "",
+        acceptanceCriteria: acceptanceCriteria ?? "",
+        taskType: taskType ?? "feature",
+        priority: priority ?? "p2",
+        status: "backlog",
+        assignedAgentId: null,
+        worktreeId: null,
+        externalIssueRef: null,
+        externalPrRef: null,
+        blockerReason: null,
+        testEvidence: null,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+        completedAt: null,
+        archivedAt: null,
+      }),
+      listForProject: async () => [],
+      get: async () => null,
+      update: async ({ taskId, status, testEvidence }) => ({
+        id: taskId,
+        projectId: "project-1",
+        repositoryId: null,
+        parentTaskId: null,
+        title: "Task",
+        description: "",
+        acceptanceCriteria: "",
+        taskType: "feature",
+        priority: "p2",
+        status: status ?? "backlog",
+        assignedAgentId: null,
+        worktreeId: null,
+        externalIssueRef: null,
+        externalPrRef: null,
+        blockerReason: null,
+        testEvidence: testEvidence ?? null,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+        completedAt: null,
+        archivedAt: null,
+      }),
+      archive: async () => {},
+      addDependency: async () => {},
+      removeDependency: async () => {},
+      listDependencies: async () => [],
+    },
     threadRepositoryScope: {
       getScope: async ({ threadId }) => ({ threadId, projectId: null, repositoryId: null, worktreeId: null }),
       setScope: async ({ threadId, projectId, repositoryId, worktreeId }) => ({
@@ -286,6 +347,27 @@ describe("createProjectsStore", () => {
     expect(removeCalls).toEqual([{ worktreeId: worktree.id, force: true }]);
     expect(store.state.dirtyWorktreeToRemove).toBeNull();
     expect(store.state.worktreesByRepository[repositoryId]).toHaveLength(0);
+    dispose();
+  });
+
+  it("creates, updates, and archives development tasks for the active project", async () => {
+    const { port } = fakePort();
+    const { store, dispose } = withStore(port);
+    await store.load();
+    await store.createProject({ name: "Mabar Desktop", description: "" });
+
+    const created = await store.createTask({ title: "Build task board", description: "Kanban view" });
+    expect(created).toBe(true);
+    expect(store.state.tasks).toHaveLength(1);
+    const taskId = store.state.tasks[0]?.id;
+    if (!taskId) throw new Error("expected a task id");
+
+    const updated = await store.updateTaskStatus(taskId, "done", "vitest passed");
+    expect(updated).toBe(true);
+    expect(store.state.tasks[0]?.status).toBe("done");
+
+    await store.archiveTask(taskId);
+    expect(store.state.tasks).toHaveLength(0);
     dispose();
   });
 });

@@ -95,6 +95,20 @@ function scopedPort(): ProjectPort {
       },
       remove: async () => {},
     },
+    developmentTasks: {
+      create: async () => {
+        throw new Error("not used");
+      },
+      listForProject: async () => [],
+      get: async () => null,
+      update: async () => {
+        throw new Error("not used");
+      },
+      archive: async () => {},
+      addDependency: async () => {},
+      removeDependency: async () => {},
+      listDependencies: async () => [],
+    },
     threadRepositoryScope: {
       getScope: async ({ threadId }) => ({
         threadId,
