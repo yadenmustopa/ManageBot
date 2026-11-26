@@ -80,23 +80,36 @@
 .project-sidebar-empty,
 .project-dashboard-empty {
   color: var(--openbot-text-muted);
-  padding: var(--openbot-space-3, 12px) 0;
+  margin: 0;
+  padding: var(--openbot-space-3, 12px) var(--openbot-space-4, 16px);
 }
 
 .project-dashboard {
-  display: flex;
-  flex-direction: column;
-  gap: var(--openbot-space-5, 20px);
-  padding: var(--openbot-space-5, 24px) var(--openbot-space-6, 28px);
+  padding: var(--openbot-space-6, 24px) var(--openbot-space-6, 28px);
   min-height: 0;
   overflow-y: auto;
 }
 
+.project-dashboard-inner {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--openbot-space-5, 20px);
+}
+
 .project-dashboard-header {
   display: flex;
-  align-items: flex-start;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
   gap: var(--openbot-space-3, 12px);
+}
+
+.project-dashboard-heading {
+  min-width: 0;
+  flex: 1;
 }
 
 .project-dashboard-header-actions {
@@ -120,12 +133,57 @@
 .project-composer-form {
   display: flex;
   flex-direction: column;
-  gap: var(--openbot-space-2, 8px);
+  gap: var(--openbot-space-3, 12px);
+  padding: var(--openbot-space-3, 12px) var(--openbot-space-4, 16px);
+  border-radius: var(--openbot-radius-lg, 14px);
+  border: 1px solid var(--openbot-border);
+  background: var(--openbot-bg-surface);
+}
+
+.project-composer-form:focus-within {
+  border-color: var(--openbot-border-strong, var(--openbot-border));
+}
+
+.project-composer-textarea {
+  border: none;
+  background: transparent;
+  padding: 0;
+  min-height: 56px;
+  resize: none;
+  box-shadow: none;
+}
+
+.project-composer-textarea:focus {
+  outline: none;
+  box-shadow: none;
 }
 
 .project-composer-actions {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--openbot-space-3, 12px);
+}
+
+.project-hub-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--openbot-space-5, 20px);
+}
+
+@media (min-width: 860px) {
+  .project-hub-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+.project-dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--openbot-space-2, 8px);
+  padding-top: var(--openbot-space-2, 8px);
 }
 
 .project-dashboard-header .ui-heading {

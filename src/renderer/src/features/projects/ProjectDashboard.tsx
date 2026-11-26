@@ -169,9 +169,9 @@ export function ProjectDashboard() {
     <section class="project-dashboard" aria-label={t("project.dashboard.label")}>
       <Show when={activeProject()} fallback={<p class="project-dashboard-empty">{t("project.dashboard.noProject")}</p>}>
         {(project) => (
-          <>
+          <div class="project-dashboard-inner">
             <header class="project-dashboard-header">
-              <div>
+              <div class="project-dashboard-heading">
                 <Heading as="h1" size="lg">
                   {project().name}
                 </Heading>
@@ -213,219 +213,237 @@ export function ProjectDashboard() {
                 }}
               >
                 <Textarea
+                  class="project-composer-textarea"
                   value={composerText()}
                   placeholder={t("project.composer.placeholder")}
                   disabled={composerSending()}
                   onInput={(event) => setComposerText(event.currentTarget.value)}
                 />
                 <div class="project-composer-actions">
+                  <Text as="span" variant="caption" tone="muted">
+                    {defaultProjectChannel()
+                      ? `#${channelById(defaultProjectChannel()?.channelId ?? "")?.name ?? defaultProjectChannel()?.channelId}`
+                      : t("project.sessions.new")}
+                  </Text>
                   <Button type="submit" disabled={composerSending() || composerText().trim().length === 0}>
                     {t("project.composer.send")}
                   </Button>
                 </div>
               </form>
             </section>
-            <ItemGroup class="project-repository-list">
-              <Show
-                when={projects.state.repositories.length > 0}
-                fallback={<p class="project-dashboard-empty">{t("project.dashboard.noRepositories")}</p>}
-              >
-                <For each={projects.state.repositories}>
-                  {(repository) => {
-                    const worktrees = () => projects.state.worktreesByRepository[repository.id] ?? [];
-                    return (
-                      <div class="project-repository-group">
-                        <Item class="project-repository-item">
-                          <FolderGit2 aria-hidden="true" />
-                          <ItemContent>
-                            <ItemTitle>{repository.name}</ItemTitle>
-                            <ItemDescription>{repository.canonicalPath}</ItemDescription>
-                            <ItemDescription class="project-repository-meta">
-                              <Show when={repository.currentBranch}>
-                                {(branch) => (
-                                  <span class="project-repository-branch">
-                                    <GitBranch aria-hidden="true" />
-                                    {branch()}
-                                  </span>
-                                )}
+            <div class="project-hub-grid">
+              <section class="project-tasks-section">
+                <header class="project-tasks-header">
+                  <Heading as="h2" size="md">
+                    {t("project.dashboard.repositories")}
+                  </Heading>
+                  <Button variant="outline" onClick={projects.openImport}>
+                    {t("project.dashboard.importRepository")}
+                  </Button>
+                </header>
+                <ItemGroup class="project-repository-list">
+                  <Show
+                    when={projects.state.repositories.length > 0}
+                    fallback={<p class="project-dashboard-empty">{t("project.dashboard.noRepositories")}</p>}
+                  >
+                    <For each={projects.state.repositories}>
+                      {(repository) => {
+                        const worktrees = () => projects.state.worktreesByRepository[repository.id] ?? [];
+                        return (
+                          <div class="project-repository-group">
+                            <Item class="project-repository-item">
+                              <FolderGit2 aria-hidden="true" />
+                              <ItemContent>
+                                <ItemTitle>{repository.name}</ItemTitle>
+                                <ItemDescription>{repository.canonicalPath}</ItemDescription>
+                                <ItemDescription class="project-repository-meta">
+                                  <Show when={repository.currentBranch}>
+                                    {(branch) => (
+                                      <span class="project-repository-branch">
+                                        <GitBranch aria-hidden="true" />
+                                        {branch()}
+                                      </span>
+                                    )}
+                                  </Show>
+                                  <span data-health={repository.health}>{healthLabel(t, repository.health)}</span>
+                                </ItemDescription>
+                              </ItemContent>
+                              <ItemActions>
+                                <Show when={isGitRepository(repository)}>
+                                  <Button variant="ghost" onClick={() => void projects.openReview(repository.id)}>
+                                    {t("project.review.open")}
+                                  </Button>
+                                  <IconButton
+                                    label={t("project.worktree.new")}
+                                    variant="ghost"
+                                    onClick={() => projects.openCreateWorktree(repository.id)}
+                                  >
+                                    <Plus />
+                                  </IconButton>
+                                </Show>
+                                <IconButton
+                                  label={t("project.repository.newSession")}
+                                  variant="ghost"
+                                  onClick={() => startCodingSession(project().id, repository.id)}
+                                >
+                                  <MessageSquare />
+                                </IconButton>
+                                <IconButton
+                                  label={t("project.repository.refresh")}
+                                  variant="ghost"
+                                  onClick={() => void projects.refreshRepository(repository.id)}
+                                >
+                                  <RefreshCw />
+                                </IconButton>
+                                <IconButton
+                                  label={t("project.repository.remove")}
+                                  variant="ghost"
+                                  onClick={() => void projects.detachRepository(repository.id)}
+                                >
+                                  <X />
+                                </IconButton>
+                              </ItemActions>
+                            </Item>
+                            <Show when={worktrees().length > 0}>
+                              <ItemGroup class="project-worktree-list">
+                                <For each={worktrees()}>
+                                  {(worktree) => (
+                                    <Item class="project-worktree-item">
+                                      <GitBranch aria-hidden="true" />
+                                      <ItemContent>
+                                        <ItemTitle>{worktree.branchName}</ItemTitle>
+                                        <ItemDescription>{worktree.canonicalPath}</ItemDescription>
+                                        <ItemDescription class="project-repository-meta">
+                                          <span data-worktree-status={worktree.lifecycleStatus}>
+                                            {worktreeStatusLabel(t, worktree.lifecycleStatus)}
+                                          </span>
+                                        </ItemDescription>
+                                      </ItemContent>
+                                      <ItemActions>
+                                        <Button
+                                          variant="ghost"
+                                          onClick={() => void projects.openReview(repository.id, worktree.id)}
+                                        >
+                                          {t("project.review.open")}
+                                        </Button>
+                                        <IconButton
+                                          label={t("project.worktree.newSession")}
+                                          variant="ghost"
+                                          onClick={() => startCodingSession(project().id, repository.id, worktree.id)}
+                                        >
+                                          <MessageSquare />
+                                        </IconButton>
+                                        <IconButton
+                                          label={t("project.worktree.refresh")}
+                                          variant="ghost"
+                                          onClick={() => void projects.refreshWorktree(worktree.id)}
+                                        >
+                                          <RefreshCw />
+                                        </IconButton>
+                                        <IconButton
+                                          label={t("project.worktree.remove")}
+                                          variant="ghost"
+                                          onClick={() => void projects.removeWorktree(worktree)}
+                                        >
+                                          <Trash2 />
+                                        </IconButton>
+                                      </ItemActions>
+                                    </Item>
+                                  )}
+                                </For>
+                              </ItemGroup>
+                            </Show>
+                          </div>
+                        );
+                      }}
+                    </For>
+                  </Show>
+                </ItemGroup>
+              </section>
+              <section class="project-tasks-section">
+                <header class="project-tasks-header">
+                  <Heading as="h2" size="md">
+                    {t("project.channels.title")}
+                  </Heading>
+                  <Show when={availableChannels().length > 0}>
+                    <div class="project-channel-picker">
+                      <Select<string>
+                        options={availableChannels().map((channel) => channel.id)}
+                        value={selectedChannelId()}
+                        onChange={(value) => setSelectedChannelId(value ?? "")}
+                        placeholder={t("project.channels.selectPlaceholder")}
+                        itemComponent={(item) => (
+                          <SelectItem item={item.item}>
+                            #{channelById(item.item.rawValue)?.name ?? item.item.rawValue}
+                          </SelectItem>
+                        )}
+                      >
+                        <SelectTrigger size="sm">
+                          <SelectValue<string>>
+                            {(state) => {
+                              const id = state.selectedOption();
+                              return id ? `#${channelById(id)?.name ?? id}` : t("project.channels.selectPlaceholder");
+                            }}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent />
+                      </Select>
+                      <Button
+                        variant="outline"
+                        disabled={!selectedChannelId()}
+                        onClick={() => {
+                          const channelId = selectedChannelId();
+                          if (!channelId) return;
+                          void projects.attachChannel(channelId);
+                          setSelectedChannelId("");
+                        }}
+                      >
+                        {t("project.channels.connect")}
+                      </Button>
+                    </div>
+                  </Show>
+                </header>
+                <ItemGroup class="project-task-list">
+                  <Show
+                    when={projects.state.channels.length > 0}
+                    fallback={<p class="project-dashboard-empty">{t("project.channels.empty")}</p>}
+                  >
+                    <For each={projects.state.channels}>
+                      {(link) => {
+                        const channel = () => channelById(link.channelId);
+                        return (
+                          <Item class="project-task-item">
+                            <ItemContent>
+                              <ItemTitle>#{channel()?.name ?? link.channelId}</ItemTitle>
+                              <Show when={link.isDefault}>
+                                <Badge variant="ghost">{t("project.channels.default")}</Badge>
                               </Show>
-                              <span data-health={repository.health}>{healthLabel(t, repository.health)}</span>
-                            </ItemDescription>
-                          </ItemContent>
-                          <ItemActions>
-                            <Show when={isGitRepository(repository)}>
-                              <Button variant="ghost" onClick={() => void projects.openReview(repository.id)}>
-                                {t("project.review.open")}
+                            </ItemContent>
+                            <ItemActions>
+                              <Show when={!link.isDefault}>
+                                <Button variant="ghost" onClick={() => void projects.setDefaultChannel(link.channelId)}>
+                                  {t("project.channels.setDefault")}
+                                </Button>
+                              </Show>
+                              <Button variant="ghost" onClick={() => openProjectChannel(link.channelId)}>
+                                {t("project.channels.open")}
                               </Button>
                               <IconButton
-                                label={t("project.worktree.new")}
+                                label={t("project.channels.remove")}
                                 variant="ghost"
-                                onClick={() => projects.openCreateWorktree(repository.id)}
+                                onClick={() => void projects.detachChannel(link.channelId)}
                               >
-                                <Plus />
+                                <X />
                               </IconButton>
-                            </Show>
-                            <IconButton
-                              label={t("project.repository.newSession")}
-                              variant="ghost"
-                              onClick={() => startCodingSession(project().id, repository.id)}
-                            >
-                              <MessageSquare />
-                            </IconButton>
-                            <IconButton
-                              label={t("project.repository.refresh")}
-                              variant="ghost"
-                              onClick={() => void projects.refreshRepository(repository.id)}
-                            >
-                              <RefreshCw />
-                            </IconButton>
-                            <IconButton
-                              label={t("project.repository.remove")}
-                              variant="ghost"
-                              onClick={() => void projects.detachRepository(repository.id)}
-                            >
-                              <X />
-                            </IconButton>
-                          </ItemActions>
-                        </Item>
-                        <Show when={worktrees().length > 0}>
-                          <ItemGroup class="project-worktree-list">
-                            <For each={worktrees()}>
-                              {(worktree) => (
-                                <Item class="project-worktree-item">
-                                  <GitBranch aria-hidden="true" />
-                                  <ItemContent>
-                                    <ItemTitle>{worktree.branchName}</ItemTitle>
-                                    <ItemDescription>{worktree.canonicalPath}</ItemDescription>
-                                    <ItemDescription class="project-repository-meta">
-                                      <span data-worktree-status={worktree.lifecycleStatus}>
-                                        {worktreeStatusLabel(t, worktree.lifecycleStatus)}
-                                      </span>
-                                    </ItemDescription>
-                                  </ItemContent>
-                                  <ItemActions>
-                                    <Button
-                                      variant="ghost"
-                                      onClick={() => void projects.openReview(repository.id, worktree.id)}
-                                    >
-                                      {t("project.review.open")}
-                                    </Button>
-                                    <IconButton
-                                      label={t("project.worktree.newSession")}
-                                      variant="ghost"
-                                      onClick={() => startCodingSession(project().id, repository.id, worktree.id)}
-                                    >
-                                      <MessageSquare />
-                                    </IconButton>
-                                    <IconButton
-                                      label={t("project.worktree.refresh")}
-                                      variant="ghost"
-                                      onClick={() => void projects.refreshWorktree(worktree.id)}
-                                    >
-                                      <RefreshCw />
-                                    </IconButton>
-                                    <IconButton
-                                      label={t("project.worktree.remove")}
-                                      variant="ghost"
-                                      onClick={() => void projects.removeWorktree(worktree)}
-                                    >
-                                      <Trash2 />
-                                    </IconButton>
-                                  </ItemActions>
-                                </Item>
-                              )}
-                            </For>
-                          </ItemGroup>
-                        </Show>
-                      </div>
-                    );
-                  }}
-                </For>
-              </Show>
-            </ItemGroup>
-            <section class="project-tasks-section">
-              <header class="project-tasks-header">
-                <Heading as="h2" size="md">
-                  {t("project.channels.title")}
-                </Heading>
-                <Show when={availableChannels().length > 0}>
-                  <div class="project-channel-picker">
-                    <Select<string>
-                      options={availableChannels().map((channel) => channel.id)}
-                      value={selectedChannelId()}
-                      onChange={(value) => setSelectedChannelId(value ?? "")}
-                      placeholder={t("project.channels.selectPlaceholder")}
-                      itemComponent={(item) => (
-                        <SelectItem item={item.item}>
-                          #{channelById(item.item.rawValue)?.name ?? item.item.rawValue}
-                        </SelectItem>
-                      )}
-                    >
-                      <SelectTrigger size="sm">
-                        <SelectValue<string>>
-                          {(state) => {
-                            const id = state.selectedOption();
-                            return id ? `#${channelById(id)?.name ?? id}` : t("project.channels.selectPlaceholder");
-                          }}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent />
-                    </Select>
-                    <Button
-                      variant="outline"
-                      disabled={!selectedChannelId()}
-                      onClick={() => {
-                        const channelId = selectedChannelId();
-                        if (!channelId) return;
-                        void projects.attachChannel(channelId);
-                        setSelectedChannelId("");
+                            </ItemActions>
+                          </Item>
+                        );
                       }}
-                    >
-                      {t("project.channels.connect")}
-                    </Button>
-                  </div>
-                </Show>
-              </header>
-              <ItemGroup class="project-task-list">
-                <Show
-                  when={projects.state.channels.length > 0}
-                  fallback={<p class="project-dashboard-empty">{t("project.channels.empty")}</p>}
-                >
-                  <For each={projects.state.channels}>
-                    {(link) => {
-                      const channel = () => channelById(link.channelId);
-                      return (
-                        <Item class="project-task-item">
-                          <ItemContent>
-                            <ItemTitle>#{channel()?.name ?? link.channelId}</ItemTitle>
-                            <Show when={link.isDefault}>
-                              <Badge variant="ghost">{t("project.channels.default")}</Badge>
-                            </Show>
-                          </ItemContent>
-                          <ItemActions>
-                            <Show when={!link.isDefault}>
-                              <Button variant="ghost" onClick={() => void projects.setDefaultChannel(link.channelId)}>
-                                {t("project.channels.setDefault")}
-                              </Button>
-                            </Show>
-                            <Button variant="ghost" onClick={() => openProjectChannel(link.channelId)}>
-                              {t("project.channels.open")}
-                            </Button>
-                            <IconButton
-                              label={t("project.channels.remove")}
-                              variant="ghost"
-                              onClick={() => void projects.detachChannel(link.channelId)}
-                            >
-                              <X />
-                            </IconButton>
-                          </ItemActions>
-                        </Item>
-                      );
-                    }}
-                  </For>
-                </Show>
-              </ItemGroup>
-            </section>
+                    </For>
+                  </Show>
+                </ItemGroup>
+              </section>
+            </div>
             <section class="project-tasks-section">
               <header class="project-tasks-header">
                 <Heading as="h2" size="md">
@@ -511,7 +529,7 @@ export function ProjectDashboard() {
                 </Show>
               </ItemGroup>
             </section>
-          </>
+          </div>
         )}
       </Show>
     </section>
