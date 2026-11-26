@@ -3544,4 +3544,89 @@ Extend it rather than replacing it.
 
 Prioritize correctness, context isolation, user control, maintainability, and upstream compatibility.
 
+---
+
+# 31. CHATGPT-STYLE PROJECT HUB WORKFLOW & ECOSYSTEM CORRELATION STRATEGY
+
+## 31.1 Tujuan dan Konsep Utama
+
+Mengubah pengalaman halaman **Projects** dari sekadar tampilan metrik pasif menjadi **Project Hub** interaktif (mengadopsi alur kerja **ChatGPT Projects** dan **OpenCode References**) yang terhubung langsung dengan seluruh ekosistem fitur **ManageBot / OpenBot**:
+
+1. **Manage & Rename Project:** Pengguna dapat membuat, me-rename, mengubah deskripsi/ikon/warna, dan mengarsipkan Project langsung dari Sidebar maupun Header Project Hub.
+2. **Sessions Inside Project:** Pengguna dapat melihat daftar seluruh sesi/percakapan milik Project, melanjutkan sesi lama, atau langsung memulai sesi baru dari Quick Composer di dalam Project Hub.
+3. **Project ↔ Channel Binding:** Pengguna dapat memilih **Channel mana** yang dipakai oleh sebuah Project (menghubungkan channel yang sudah ada, membuat channel baru untuk Project, dan menetapkan *Default Channel*), sehingga percakapan di dalam Project dapat berjalan melalui Channel multi-agent maupun Agent tunggal.
+4. **Shared Project Context:** Seluruh folder Project (Git maupun non-Git), *Project Instructions*, dan `@` file tagging otomatis tersedia bagi sesi dan channel yang berjalan di dalam Project, tanpa melanggar isolasi tulis (*write isolation*) antar repository.
+
+## 31.2 Audit Data dan Infrastruktur Saat Ini (Baseline Terverifikasi)
+
+| Domain | Aset & Tabel / Kontrak yang Sudah Ada | Lokasi Kode / Skema | Celah yang Perlu Ditambahkan |
+| :--- | :--- | :--- | :--- |
+| **Project CRUD & Rename** | Tabel `projection_projects` (`project_id`, `name`, `description`, `icon`, `color`, `pinned`, `archived_at`), `ProjectStore.updateProject`, IPC `projects:update` & `projects:archive` | `src/backend/migrations/0070-projects.ts`, `src/backend/project/project-store.ts`, `packages/contracts/src/ipc-endpoints.ts` | Belum ada UI Rename / Edit / Archive di `ProjectSidebar.tsx` dan `ProjectDashboard.tsx` |
+| **Multi-Folder & Non-Git** | `projection_repositories`, `project_repositories` (many-to-many), `chooseFolders` (`multiSelections`), dukungan folder non-Git di `RepositoryStore` | `src/backend/project/repository-store.ts`, `src/renderer/src/features/projects/CreateProjectDialog.tsx` | Sudah aktif; perlu ditampilkan rapi bersama daftar sesi & channel di Project Hub |
+| **Konteks & `@` File Tagging** | `resolveAgentExecutionContext` (`projectFolders`), `searchProjectFiles` (`repositories:search-files`), `ChatTagKind` `"file"` di `ComposerEditor` | `src/backend/project/repository-context-resolver.ts`, `src/backend/project/project-file-search.ts`, `packages/ui/src/features/conversation/ComposerEditor.tsx` | Perlu injeksi `project.description` (*Project Instructions*) & daftar `projectFolders` ke system prompt runtime (`thread-lifecycle.ts`), serta rute remote Team API |
+| **Sesi di Dalam Project** | Tabel `thread_repository_scope` (`thread_id`, `project_id`, `repository_id`, `worktree_id`), `ThreadRepositoryScopeStore.getScope` | `src/backend/migrations/0071-thread-repository-scope.ts`, `src/backend/project/thread-repository-scope.ts` | Belum ada query `listThreadsForProject(projectId)`, IPC `projects:list-sessions`, daftar sesi di `ProjectDashboard.tsx`, dan Quick Composer di halaman Project |
+| **Channel Ecosystem** | `Channel` (`id`, `name`, `members`, `browser`, `folders`), `ChannelSummary`, `channel-service.ts`, `channelFolders` | `packages/contracts/src/ipc-chat-channels.ts`, `src/backend/channel-service.ts` | Belum ada tabel relasi `project_channels` untuk mengikat Project ke Channel tertentu dan menentukan Default Channel |
+| **Worktrees, Tasks & Workflows** | `projection_worktrees`, `projection_development_tasks`, `coding_workflows`, Git Review | `src/backend/migrations/0072-worktrees.ts`, `src/renderer/src/features/projects/ProjectDashboard.tsx` | Sudah terhubung ke Project; perlu terintegrasi rapi di Project Hub bersama Sessions dan Channels |
+
+## 31.3 Korelasi Antar Fitur ManageBot / OpenBot
+
+Strategi ini memastikan fitur Project tidak berdiri terpisah, melainkan menjadi pusat koordinasi seluruh fitur ManageBot:
+
+1. **Projects ↔ Agents & Threads:**
+   - Setiap sesi chat yang dimulai dari Project Hub (baik lewat Quick Composer maupun tombol *New session*) otomatis mencatat relasi di `thread_repository_scope` (`project_id`, dan opsional `repository_id` / `worktree_id`).
+   - Daftar sesi di `ProjectDashboard` mengambil thread terkait dari `thread_repository_scope` join `projection_threads` & `projection_agents`, sehingga user bisa berpindah antara Chat View dan Project Hub tanpa kehilangan jejak sesi.
+2. **Projects ↔ Channels (Multi-Agent Collaboration):**
+   - Melalui tabel join baru `project_channels (project_id, channel_id, is_default, created_at)`, sebuah Project dapat terhubung ke 1 atau lebih Channel yang sudah ada di ManageBot (misalnya `#dev-team`, `#qa-review`, atau channel bot eksternal).
+   - User dapat memilih **Channel mana yang dipakai** langsung dari Project Hub atau saat memulai sesi/task di Project.
+   - Folder Project (`project_repositories`) dapat dibaca sebagai konteks referensi di dalam Channel tersebut, sementara modifikasi kode tetap mengikuti aturan `FR-07` (menargetkan repository/worktree yang dipilih).
+3. **Projects ↔ Knowledge, Instructions & `@` File Tagging:**
+   - Kolom `projection_projects.description` berfungsi sebagai **Project Instructions** yang otomatis disisipkan ke konteks turn agen pada setiap thread yang terikat ke `project_id`.
+   - Saat mengetik `@` di `ComposerEditor`, `repositories:search-files` memindai seluruh folder Project (Git maupun non-Git) sehingga user bisa langsung men-tag file lintas folder dalam 1 prompt.
+4. **Projects ↔ Worktrees, Development Tasks & Coding Workflows:**
+   - Dari dalam Project Hub, sesi dapat dijalankan pada repository root (untuk diskusi/analisis) atau bercabang ke isolated Worktree (`projection_worktrees`) untuk implementasi kode paralel, dengan pelacakan status pada `projection_development_tasks` dan `coding_workflows`.
+5. **Projects ↔ Joined Servers / Team API & Mobile:**
+   - Sesuai aturan *Joined Servers*, seluruh endpoint baru (`projects:list-sessions`, `projects:bind-channel`, `repositories:search-files`) harus memiliki rute Team API (`src/main/team-api/`) dan capability gate di `packages/contracts/src/team-protocol/` agar desktop remote, web client, dan mobile tetap konsisten.
+
+## 31.4 Gambaran Flow Lengkap (End-to-End)
+
+```mermaid
+flowchart TD
+    A["Sidebar: Klik '+' atau Pilih Project"] --> B["Project Hub (Dashboard Project)"]
+    B --> C{"Kelola Project"}
+    C -->|"Rename / Edit / Archive"| D["Inline / Modal Edit -> IPC projects:update / projects:archive"]
+    C -->|"Atur Folder & Instructions"| E["Multi-Folder (Git & Non-Git) + Project Instructions"]
+    C -->|"Pilih Channel"| F["Channel Picker -> Simpan ke project_channels (Set Default Channel)"]
+
+    B --> G["Area Sesi di Dalam Project"]
+    G --> H["Quick Composer / Tombol 'New Session'"]
+    H --> I{"Pilih Mode Eksekusi"}
+    I -->|"Via Channel Terpilih"| J["Kirim ke Channel Project (Multi-Agent + Konteks Project)"]
+    I -->|"Via Agent Tunggal"| K["Buat/Lanjutkan Thread + Simpan thread_repository_scope"]
+    I -->|"Coding Task / Worktree"| L["Jalankan di Isolated Worktree + Git Review"]
+
+    G --> M["Daftar Sesi Project (projects:list-sessions)"]
+    M -->|"Klik Sesi"| N["Buka Percakapan dengan Konteks Project Aktif"]
+    N --> O["Ketik '@' -> repositories:search-files -> Tag File Lintas Folder"]
+```
+
+## 31.5 Rencana Implementasi Bertahap (Phase 8)
+
+- **Phase 8A — Rename, Edit & Project Sessions Hub (Tanpa Perubahan Skema DB):**
+  - Tambahkan menu aksi (`...`) untuk **Rename**, **Edit Instructions**, dan **Archive** di `ProjectSidebar.tsx` dan `ProjectDashboard.tsx` memakai `projects:update` dan `projects:archive`.
+  - Tambahkan `listThreadsForProject(projectId)` di `ThreadRepositoryScopeStore`, IPC `projects:list-sessions`, serta daftar **Sessions** di `ProjectDashboard.tsx` agar pengguna dapat melihat dan membuka kembali semua sesi milik Project.
+- **Phase 8B — Project ↔ Channel Binding (`0076-project-channels`):**
+  - Tambahkan migrasi `project_channels` dan store `ProjectChannelStore` beserta IPC CRUD (`projects:list-channels`, `projects:attach-channel`, `projects:detach-channel`, `projects:set-default-channel`).
+  - Tambahkan **Channel Picker** di `ProjectDashboard.tsx` sehingga pengguna dapat memilih Channel mana yang dipakai Project tersebut.
+- **Phase 8C — Quick Composer, Project Instructions Injection & Remote Parity:**
+  - Tambahkan Quick Composer langsung di `ProjectDashboard.tsx` (bisa memilih target Channel atau Agent).
+  - Injeksi otomatis `project.name`, `project.description` (*Project Instructions*), dan `projectFolders` ke system prompt di `thread-lifecycle.ts`.
+  - Lengkapi rute Team API & capability gating untuk `repositories:search-files`, `projects:list-sessions`, dan `project_channels`.
+
+## 31.6 Acceptance Criteria
+
+1. Pengguna dapat me-rename, mengedit deskripsi/instruksi, dan mengarsipkan Project langsung dari UI tanpa error.
+2. Membuka sebuah Project menampilkan daftar sesi chat yang terikat ke Project tersebut, dan klik sesi langsung membuka percakapan terkait.
+3. Pengguna dapat menghubungkan 1 atau lebih Channel ke Project, menentukan Default Channel, dan memulai/mengirim sesi lewat Channel tersebut.
+4. Sesi baru yang dimulai dari dalam Project otomatis mewarisi *Project Instructions*, daftar folder Project (Git dan non-Git), serta mendukung `@` file tagging lintas folder.
+
 END OF MASTER PRD.

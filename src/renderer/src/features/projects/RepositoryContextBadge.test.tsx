@@ -54,6 +54,7 @@ function scopedPort(): ProjectPort {
       archiveProject: async () => {},
       restoreProject: async () => {},
       getDashboardSummary: async () => ({ projectId: project.id, repositoryCount: 1 }),
+      listSessions: async () => [],
     },
     repositories: {
       importRepository: async () => {

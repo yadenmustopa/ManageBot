@@ -719,6 +719,7 @@ import type {
   ProjectDashboardSummary,
   ProjectFileMatch,
   ProjectIdInput,
+  ProjectSessionSummary,
   RemoveWorktreeInput,
   RepositoryIdInput,
   SearchProjectFilesInput,
@@ -1461,6 +1462,7 @@ export const IPC_ENDPOINTS = {
     archiveProject: request<ProjectIdInput, void>()("projects:archive"),
     restoreProject: request<ProjectIdInput, void>()("projects:restore"),
     getDashboardSummary: request<ProjectIdInput, ProjectDashboardSummary>()("projects:get-dashboard-summary"),
+    listSessions: request<ProjectIdInput, ProjectSessionSummary[]>()("projects:list-sessions"),
   },
   threadRepositoryScope: {
     getScope: request<ThreadIdInput, ThreadRepositoryScope>()("thread-repository-scope:get"),

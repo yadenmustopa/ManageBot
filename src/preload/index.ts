@@ -350,6 +350,7 @@ import {
   decodeProjectFileMatchList,
   decodeProjectList,
   decodeProjectOrNull,
+  decodeProjectSessionSummaryList,
   decodeRepository,
   decodeRepositoryList,
   decodeStringList,
@@ -1199,6 +1200,7 @@ const openbotApi: OpenBotDesktopApi = {
     archiveProject: decodeVoid,
     restoreProject: decodeVoid,
     getDashboardSummary: decodeProjectDashboardSummary,
+    listSessions: decodeProjectSessionSummaryList,
   }),
   repositories: bridgeGroup(IPC_ENDPOINTS.repositories, {
     importRepository: decodeRepository,

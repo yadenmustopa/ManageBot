@@ -11,6 +11,7 @@ import {
 import { sourceText } from "@openbot/i18n/source";
 import type { ProjectStore } from "../../backend/project/project-store";
 import type { RepositoryStore } from "../../backend/project/repository-store";
+import type { ThreadRepositoryScopeStore } from "../../backend/project/thread-repository-scope";
 import { handler, type IpcGroupHandlers, payloadHandler } from "./define-ipc-group";
 
 function validInput<T>(parse: (input: unknown) => T | null) {
@@ -24,11 +25,13 @@ function validInput<T>(parse: (input: unknown) => T | null) {
 export interface ProjectIpcDependencies {
   projects: ProjectStore;
   repositories: RepositoryStore;
+  threadRepositoryScopes: ThreadRepositoryScopeStore;
 }
 
 export function projectIpcHandlers({
   projects,
   repositories,
+  threadRepositoryScopes,
 }: ProjectIpcDependencies): Pick<IpcGroupHandlers, "projects"> {
   return {
     projects: {
@@ -56,6 +59,9 @@ export function projectIpcHandlers({
         projectId,
         repositoryCount: repositories.listRepositoriesForProject(projectId).length,
       })),
+      listSessions: payloadHandler(validInput(parseProjectIdInput), ({ projectId }: ProjectIdInput) =>
+        threadRepositoryScopes.listSessionsForProject(projectId),
+      ),
     },
   };
 }

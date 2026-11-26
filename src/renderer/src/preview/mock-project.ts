@@ -181,6 +181,7 @@ export function createMockProjectWorkspace(): {
       projectId,
       repositoryCount: links.filter((link) => link.projectId === projectId).length,
     }),
+    listSessions: async () => [],
   };
 
   const repositoriesApi: RepositoriesDesktopApi = {

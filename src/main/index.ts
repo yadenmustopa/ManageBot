@@ -944,7 +944,7 @@ function registerIpcHandlers({
     ...referralIpcHandlers({ referral }),
     ...licenseIpcHandlers({ license }),
     ...creditsIpcHandlers({ credits }),
-    ...projectIpcHandlers({ projects, repositories }),
+    ...projectIpcHandlers({ projects, repositories, threadRepositoryScopes }),
     ...repositoryIpcHandlers({
       repositories,
       threadRepositoryScopes,

@@ -8,6 +8,8 @@ import type {
   OpenBotRepository,
   OpenBotWorktree,
   ProjectDashboardSummary,
+  ProjectSessionSummary,
+  UpdateProjectInput,
 } from "@openbot/contracts/project";
 import { createStore } from "solid-js";
 import type { ProjectPort } from "../project-port";
@@ -20,11 +22,13 @@ export interface ProjectsState {
   repositories: OpenBotRepository[];
   worktreesByRepository: Record<string, OpenBotWorktree[]>;
   tasks: OpenBotDevelopmentTask[];
+  sessions: ProjectSessionSummary[];
   dashboard: ProjectDashboardSummary | null;
   loading: boolean;
   error: string | null;
   pending: boolean;
   createOpen: boolean;
+  editOpen: boolean;
   importOpen: boolean;
   createTaskOpen: boolean;
   createWorktreeRepositoryId: string | null;
@@ -50,11 +54,13 @@ export function createProjectsStore(port: () => ProjectPort) {
     repositories: [],
     worktreesByRepository: {},
     tasks: [],
+    sessions: [],
     dashboard: null,
     loading: false,
     error: null,
     pending: false,
     createOpen: false,
+    editOpen: false,
     importOpen: false,
     createTaskOpen: false,
     createWorktreeRepositoryId: null,
@@ -68,10 +74,11 @@ export function createProjectsStore(port: () => ProjectPort) {
   let repositoryLoadToken = 0;
 
   async function loadRepositories(projectId: string, token: number) {
-    const [repositories, dashboard, tasks] = await Promise.all([
+    const [repositories, dashboard, tasks, sessions] = await Promise.all([
       port().repositories.listForProject({ projectId }),
       port().projects.getDashboardSummary({ projectId }),
       port().developmentTasks.listForProject({ projectId }),
+      port().projects.listSessions({ projectId }),
     ]);
     const worktreeEntries =
       repositories.length === 0
@@ -87,6 +94,7 @@ export function createProjectsStore(port: () => ProjectPort) {
       draft.repositories = repositories;
       draft.worktreesByRepository = Object.fromEntries(worktreeEntries);
       draft.tasks = tasks;
+      draft.sessions = sessions;
       draft.dashboard = dashboard;
     });
   }
@@ -98,6 +106,7 @@ export function createProjectsStore(port: () => ProjectPort) {
       draft.repositories = [];
       draft.worktreesByRepository = {};
       draft.tasks = [];
+      draft.sessions = [];
       draft.dashboard = null;
     });
     writeActiveProjectId(projectId);
@@ -164,6 +173,54 @@ export function createProjectsStore(port: () => ProjectPort) {
           draft.worktreesByRepository = Object.fromEntries(imported.map((repo) => [repo.id, []]));
           draft.dashboard = { projectId: project.id, repositoryCount: imported.length };
         });
+      }
+      return true;
+    } catch (cause) {
+      setState((draft) => {
+        draft.pending = false;
+        draft.error = errorMessage(cause);
+      });
+      return false;
+    }
+  }
+
+  async function updateProject(input: UpdateProjectInput): Promise<boolean> {
+    setState((draft) => {
+      draft.pending = true;
+      draft.error = null;
+    });
+    try {
+      const updated = await port().projects.updateProject(input);
+      setState((draft) => {
+        draft.projects = draft.projects.map((project) => (project.id === updated.id ? updated : project));
+        draft.pending = false;
+        draft.editOpen = false;
+      });
+      return true;
+    } catch (cause) {
+      setState((draft) => {
+        draft.pending = false;
+        draft.error = errorMessage(cause);
+      });
+      return false;
+    }
+  }
+
+  async function archiveProject(projectId: string): Promise<boolean> {
+    setState((draft) => {
+      draft.pending = true;
+      draft.error = null;
+    });
+    try {
+      await port().projects.archiveProject({ projectId });
+      const remaining = state.projects.filter((project) => project.id !== projectId);
+      setState((draft) => {
+        draft.projects = remaining;
+        draft.pending = false;
+        draft.editOpen = false;
+      });
+      if (state.activeProjectId === projectId) {
+        selectProject(remaining[0]?.id ?? null);
       }
       return true;
     } catch (cause) {
@@ -463,6 +520,8 @@ export function createProjectsStore(port: () => ProjectPort) {
     load,
     selectProject,
     createProject,
+    updateProject,
+    archiveProject,
     importRepository,
     detachRepository,
     refreshRepository,
@@ -496,6 +555,16 @@ export function createProjectsStore(port: () => ProjectPort) {
     closeCreate: () =>
       setState((draft) => {
         draft.createOpen = false;
+        draft.error = null;
+      }),
+    openEdit: () =>
+      setState((draft) => {
+        draft.editOpen = true;
+        draft.error = null;
+      }),
+    closeEdit: () =>
+      setState((draft) => {
+        draft.editOpen = false;
         draft.error = null;
       }),
     openImport: () =>

@@ -21,6 +21,7 @@ import {
 import { useText } from "@openbot/ui/text";
 import { For, Show } from "solid-js";
 import { useAgents } from "../agents/agents-context";
+import { useWindowPage } from "../window/window-page-context";
 import { useProjects } from "./project-context";
 
 function healthLabel(t: ReturnType<typeof useText>["t"], health: RepositoryHealth): string {
@@ -87,12 +88,30 @@ function taskStatusLabel(t: ReturnType<typeof useText>["t"], status: Development
 export function ProjectDashboard() {
   const projects = useProjects();
   const agents = useAgents();
+  const windowPage = useWindowPage();
   const { t } = useText();
   const activeProject = () => projects.state.projects.find((project) => project.id === projects.state.activeProjectId);
 
   function startCodingSession(projectId: string, repositoryId: string, worktreeId: string | null = null) {
     projects.requestRepositorySession(projectId, repositoryId, worktreeId);
     agents.openAgentSetup();
+  }
+
+  function startProjectSession(projectId: string) {
+    const firstRepository = projects.state.repositories[0];
+    if (firstRepository) {
+      startCodingSession(projectId, firstRepository.id);
+      return;
+    }
+    agents.openAgentSetup();
+  }
+
+  function openProjectSession(agentId: string) {
+    agents.cancelAgentSetup();
+    agents.setActiveAgentId(agentId);
+    agents.setExplicitlyOpenedAgentChatId(agentId);
+    agents.setAgentChatOpenRevision((revision) => revision + 1);
+    windowPage.showAgents();
   }
 
   return (
@@ -109,7 +128,12 @@ export function ProjectDashboard() {
                   <p class="project-dashboard-description">{project().description}</p>
                 </Show>
               </div>
-              <Button onClick={projects.openImport}>{t("project.dashboard.importRepository")}</Button>
+              <div class="project-dashboard-header-actions">
+                <Button variant="outline" onClick={projects.openEdit}>
+                  {t("project.action.edit")}
+                </Button>
+                <Button onClick={projects.openImport}>{t("project.dashboard.importRepository")}</Button>
+              </div>
             </header>
             <div class="project-dashboard-metrics">
               <div class="project-dashboard-metric">
@@ -247,6 +271,38 @@ export function ProjectDashboard() {
                 </For>
               </Show>
             </ItemGroup>
+            <section class="project-tasks-section">
+              <header class="project-tasks-header">
+                <Heading as="h2" size="md">
+                  {t("project.sessions.title")}
+                </Heading>
+                <Button variant="outline" onClick={() => startProjectSession(project().id)}>
+                  {t("project.sessions.new")}
+                </Button>
+              </header>
+              <ItemGroup class="project-task-list">
+                <Show
+                  when={projects.state.sessions.length > 0}
+                  fallback={<p class="project-dashboard-empty">{t("project.sessions.empty")}</p>}
+                >
+                  <For each={projects.state.sessions}>
+                    {(session) => (
+                      <Item class="project-task-item">
+                        <ItemContent>
+                          <ItemTitle>{session.title || session.agentName}</ItemTitle>
+                          <ItemDescription>{session.agentName}</ItemDescription>
+                        </ItemContent>
+                        <ItemActions>
+                          <Button variant="ghost" onClick={() => openProjectSession(session.agentId)}>
+                            {t("project.sessions.open")}
+                          </Button>
+                        </ItemActions>
+                      </Item>
+                    )}
+                  </For>
+                </Show>
+              </ItemGroup>
+            </section>
             <section class="project-tasks-section">
               <header class="project-tasks-header">
                 <Heading as="h2" size="md">

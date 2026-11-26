@@ -66,6 +66,7 @@ function fakePort(): { port: ProjectPort; dispose: () => void } {
         projectId,
         repositoryCount: links.filter((link) => link.projectId === projectId).length,
       }),
+      listSessions: async () => [],
     },
     repositories: {
       importRepository: async ({ projectId, path }) => {
@@ -448,6 +449,29 @@ describe("createProjectsStore", () => {
       "/home/me/dev/mabar-backend",
     ]);
     expect(store.state.dashboard?.repositoryCount).toBe(2);
+    dispose();
+  });
+
+  it("renames, updates instructions, and archives a project", async () => {
+    const { port } = fakePort();
+    const { store, dispose } = withStore(port);
+    await store.load();
+    await store.createProject({ name: "Old Name", description: "Old instructions" });
+    const projectId = store.state.activeProjectId;
+    expect(projectId).toBeTruthy();
+
+    const updated = await store.updateProject({
+      projectId: projectId ?? "",
+      name: "New Name",
+      description: "New instructions",
+    });
+    expect(updated).toBe(true);
+    expect(store.state.projects.find((p) => p.id === projectId)?.name).toBe("New Name");
+    expect(store.state.projects.find((p) => p.id === projectId)?.description).toBe("New instructions");
+
+    const archived = await store.archiveProject(projectId ?? "");
+    expect(archived).toBe(true);
+    expect(store.state.projects.some((p) => p.id === projectId)).toBe(false);
     dispose();
   });
 });

@@ -1169,6 +1169,44 @@ export interface ProjectFileMatch {
   rootPath: string;
 }
 
+export interface ProjectSessionSummary {
+  threadId: string;
+  agentId: string;
+  agentName: string;
+  title: string;
+  repositoryId: string | null;
+  worktreeId: string | null;
+  updatedAt: string;
+}
+
+export function parseProjectSessionSummaryList(value: unknown): ProjectSessionSummary[] | null {
+  if (!Array.isArray(value)) return null;
+  const sessions: ProjectSessionSummary[] = [];
+  for (const item of value) {
+    if (
+      !isDynamicRecord(item) ||
+      !isString(item.threadId) ||
+      !isString(item.agentId) ||
+      !isString(item.agentName) ||
+      !isString(item.title) ||
+      !isNullableString(item.repositoryId) ||
+      !isNullableString(item.worktreeId) ||
+      !isString(item.updatedAt)
+    )
+      return null;
+    sessions.push({
+      threadId: item.threadId,
+      agentId: item.agentId,
+      agentName: item.agentName,
+      title: item.title,
+      repositoryId: item.repositoryId,
+      worktreeId: item.worktreeId,
+      updatedAt: item.updatedAt,
+    });
+  }
+  return sessions;
+}
+
 export interface SearchProjectFilesInput {
   projectId?: string | null;
   threadId?: string | null;

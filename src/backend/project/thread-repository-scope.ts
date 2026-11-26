@@ -1,4 +1,5 @@
-import { databaseRow, optionalStringColumn } from "../database/database-rows";
+import type { ProjectSessionSummary } from "@openbot/contracts/project";
+import { databaseRow, databaseRows, optionalStringColumn, requiredStringColumn } from "../database/database-rows";
 import { withTransaction } from "../database/sqlite-transaction";
 import type { OpenBotDatabase } from "../openbot-database";
 
@@ -61,5 +62,31 @@ export class ThreadRepositoryScopeStore {
            updated_at = excluded.updated_at`,
       ).run(threadId, projectId, repositoryId, worktreeId, now, now);
     });
+  }
+
+  listSessionsForProject(projectId: string): ProjectSessionSummary[] {
+    return databaseRows(
+      this.database.connection
+        .prepare(
+          `SELECT s.thread_id, s.repository_id, s.worktree_id,
+                  t.agent_id, t.title, t.updated_at,
+                  COALESCE(json_extract(a.agent_json, '$.name'), t.agent_id) AS agent_name
+           FROM thread_repository_scope s
+           JOIN projection_threads t ON t.thread_id = s.thread_id
+           LEFT JOIN projection_agents a ON a.agent_id = t.agent_id
+           WHERE s.project_id = ?
+           ORDER BY t.updated_at DESC
+           LIMIT 100`,
+        )
+        .all(projectId),
+    ).map((row) => ({
+      threadId: requiredStringColumn(row, "thread_id"),
+      agentId: requiredStringColumn(row, "agent_id"),
+      agentName: requiredStringColumn(row, "agent_name"),
+      title: requiredStringColumn(row, "title"),
+      repositoryId: optionalStringColumn(row, "repository_id"),
+      worktreeId: optionalStringColumn(row, "worktree_id"),
+      updatedAt: requiredStringColumn(row, "updated_at"),
+    }));
   }
 }

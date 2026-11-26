@@ -99,6 +99,13 @@
   gap: var(--openbot-space-3, 12px);
 }
 
+.project-dashboard-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--openbot-space-2, 8px);
+  flex-shrink: 0;
+}
+
 .project-dashboard-header .ui-heading {
   margin: 0;
 }
