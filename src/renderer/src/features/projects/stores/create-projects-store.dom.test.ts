@@ -204,6 +204,28 @@ function fakePort(): { port: ProjectPort; dispose: () => void } {
       removeDependency: async () => {},
       listDependencies: async () => [],
     },
+    gitReview: {
+      getSnapshot: async () => ({
+        targetPath: "/home/me/dev/mabar-desktop",
+        currentBranch: "main",
+        files: [{ path: "src/app.ts", status: "modified", staged: false }],
+        commits: [],
+        hasConflicts: false,
+      }),
+      getDiff: async ({ filePath }) => ({
+        diff: filePath ? `diff --git a/${filePath} b/${filePath}\n+updated` : "full diff",
+        truncated: false,
+        binary: false,
+      }),
+      getGitHubOverview: async () => ({
+        owner: "yadenmustopa",
+        repo: "ManageBot",
+        issues: [],
+        pullRequests: [],
+        error: null,
+      }),
+      createPullRequest: async () => "https://github.com/yadenmustopa/ManageBot/pull/1",
+    },
     threadRepositoryScope: {
       getScope: async ({ threadId }) => ({ threadId, projectId: null, repositoryId: null, worktreeId: null }),
       setScope: async ({ threadId, projectId, repositoryId, worktreeId }) => ({
@@ -368,6 +390,29 @@ describe("createProjectsStore", () => {
 
     await store.archiveTask(taskId);
     expect(store.state.tasks).toHaveLength(0);
+    dispose();
+  });
+
+  it("loads Git review snapshot, file diff, and GitHub overview", async () => {
+    const { port } = fakePort();
+    const { store, dispose } = withStore(port);
+    await store.load();
+    await store.createProject({ name: "Mabar Desktop", description: "" });
+    await store.importRepository("/home/me/dev/mabar-desktop");
+    const repositoryId = store.state.repositories[0]?.id;
+    if (!repositoryId) throw new Error("expected a repository id");
+
+    await store.openReview(repositoryId);
+    expect(store.state.reviewSnapshot?.files).toHaveLength(1);
+    expect(store.state.reviewDiff?.diff).toBe("full diff");
+    expect(store.state.reviewGitHub?.owner).toBe("yadenmustopa");
+
+    await store.selectReviewFile("src/app.ts", false);
+    expect(store.state.reviewDiff?.diff).toContain("src/app.ts");
+
+    store.closeReview();
+    await Promise.resolve();
+    expect(store.state.reviewTarget).toBeNull();
     dispose();
   });
 });

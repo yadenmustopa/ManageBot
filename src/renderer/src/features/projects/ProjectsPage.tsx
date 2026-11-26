@@ -4,6 +4,7 @@ import { createPageHeaderFrame } from "../window/page-header-frame";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { CreateTaskDialog } from "./CreateTaskDialog";
 import { CreateWorktreeDialog } from "./CreateWorktreeDialog";
+import { GitReviewDialog } from "./GitReviewDialog";
 import { ImportRepositoryDialog } from "./ImportRepositoryDialog";
 import { ProjectDashboard } from "./ProjectDashboard";
 import { ProjectSidebar } from "./ProjectSidebar";
@@ -25,6 +26,7 @@ export function ProjectsPage(props: { onBack: () => void }) {
       <CreateWorktreeDialog />
       <RemoveWorktreeDialog />
       <CreateTaskDialog />
+      <GitReviewDialog />
     </div>
   );
 }

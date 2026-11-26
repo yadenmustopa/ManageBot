@@ -1,5 +1,8 @@
 import type {
   DevelopmentTaskStatus,
+  GitDiffResult,
+  GitHubRepositoryOverview,
+  GitReviewSnapshot,
   OpenBotDevelopmentTask,
   OpenBotProject,
   OpenBotRepository,
@@ -26,6 +29,10 @@ export interface ProjectsState {
   createTaskOpen: boolean;
   createWorktreeRepositoryId: string | null;
   dirtyWorktreeToRemove: OpenBotWorktree | null;
+  reviewTarget: { repositoryId: string; worktreeId: string | null } | null;
+  reviewSnapshot: GitReviewSnapshot | null;
+  reviewDiff: GitDiffResult | null;
+  reviewGitHub: GitHubRepositoryOverview | null;
 }
 
 const ELECTRON_IPC_ERROR_PREFIX = /^Error invoking remote method '[^']*':\s*(?:[A-Za-z]*Error:\s*)?/;
@@ -52,6 +59,10 @@ export function createProjectsStore(port: () => ProjectPort) {
     createTaskOpen: false,
     createWorktreeRepositoryId: null,
     dirtyWorktreeToRemove: null,
+    reviewTarget: null,
+    reviewSnapshot: null,
+    reviewDiff: null,
+    reviewGitHub: null,
   });
 
   let repositoryLoadToken = 0;
@@ -382,6 +393,53 @@ export function createProjectsStore(port: () => ProjectPort) {
     }
   }
 
+  async function openReview(repositoryId: string, worktreeId: string | null = null): Promise<void> {
+    setState((draft) => {
+      draft.reviewTarget = { repositoryId, worktreeId };
+      draft.reviewSnapshot = null;
+      draft.reviewDiff = null;
+      draft.reviewGitHub = null;
+      draft.error = null;
+    });
+    try {
+      const [snapshot, diff, github] = await Promise.all([
+        port().gitReview.getSnapshot({ repositoryId, worktreeId }),
+        port().gitReview.getDiff({ repositoryId, worktreeId }),
+        port().gitReview.getGitHubOverview({ repositoryId }),
+      ]);
+      setState((draft) => {
+        if (draft.reviewTarget?.repositoryId !== repositoryId || draft.reviewTarget?.worktreeId !== worktreeId) return;
+        draft.reviewSnapshot = snapshot;
+        draft.reviewDiff = diff;
+        draft.reviewGitHub = github;
+      });
+    } catch (cause) {
+      setState((draft) => {
+        draft.error = errorMessage(cause);
+      });
+    }
+  }
+
+  async function selectReviewFile(filePath: string, staged: boolean): Promise<void> {
+    const target = state.reviewTarget;
+    if (!target) return;
+    try {
+      const diff = await port().gitReview.getDiff({
+        repositoryId: target.repositoryId,
+        worktreeId: target.worktreeId,
+        filePath,
+        staged,
+      });
+      setState((draft) => {
+        draft.reviewDiff = diff;
+      });
+    } catch (cause) {
+      setState((draft) => {
+        draft.error = errorMessage(cause);
+      });
+    }
+  }
+
   return {
     state,
     load,
@@ -397,6 +455,15 @@ export function createProjectsStore(port: () => ProjectPort) {
     createTask,
     updateTaskStatus,
     archiveTask,
+    openReview,
+    selectReviewFile,
+    closeReview: () =>
+      setState((draft) => {
+        draft.reviewTarget = null;
+        draft.reviewSnapshot = null;
+        draft.reviewDiff = null;
+        draft.reviewGitHub = null;
+      }),
     cancelForceRemoveWorktree: () =>
       setState((draft) => {
         draft.dirtyWorktreeToRemove = null;

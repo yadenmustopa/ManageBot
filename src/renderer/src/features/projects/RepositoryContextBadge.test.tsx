@@ -109,6 +109,18 @@ function scopedPort(): ProjectPort {
       removeDependency: async () => {},
       listDependencies: async () => [],
     },
+    gitReview: {
+      getSnapshot: async () => ({
+        targetPath: "/home/sam/mabar-desktop",
+        currentBranch: "main",
+        files: [],
+        commits: [],
+        hasConflicts: false,
+      }),
+      getDiff: async () => ({ diff: "", truncated: false, binary: false }),
+      getGitHubOverview: async () => ({ owner: "", repo: "", issues: [], pullRequests: [], error: null }),
+      createPullRequest: async () => "https://github.com/example/repo/pull/1",
+    },
     threadRepositoryScope: {
       getScope: async ({ threadId }) => ({
         threadId,

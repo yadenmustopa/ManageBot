@@ -141,6 +141,9 @@ export function ProjectDashboard() {
                             </ItemDescription>
                           </ItemContent>
                           <ItemActions>
+                            <Button variant="ghost" onClick={() => void projects.openReview(repository.id)}>
+                              {t("project.review.open")}
+                            </Button>
                             <IconButton
                               label={t("project.worktree.new")}
                               variant="ghost"
