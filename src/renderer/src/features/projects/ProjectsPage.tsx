@@ -2,9 +2,11 @@ import { PageHeader } from "@openbot/ui/features/window/PageHeader";
 import { useText } from "@openbot/ui/text";
 import { createPageHeaderFrame } from "../window/page-header-frame";
 import { CreateProjectDialog } from "./CreateProjectDialog";
+import { CreateWorktreeDialog } from "./CreateWorktreeDialog";
 import { ImportRepositoryDialog } from "./ImportRepositoryDialog";
 import { ProjectDashboard } from "./ProjectDashboard";
 import { ProjectSidebar } from "./ProjectSidebar";
+import { RemoveWorktreeDialog } from "./RemoveWorktreeDialog";
 
 export function ProjectsPage(props: { onBack: () => void }) {
   const { t } = useText();
@@ -19,6 +21,8 @@ export function ProjectsPage(props: { onBack: () => void }) {
       </div>
       <CreateProjectDialog />
       <ImportRepositoryDialog />
+      <CreateWorktreeDialog />
+      <RemoveWorktreeDialog />
     </div>
   );
 }

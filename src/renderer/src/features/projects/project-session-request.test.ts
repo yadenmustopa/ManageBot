@@ -13,13 +13,30 @@ describe("project-session-request", () => {
 
   it("returns the requested repository exactly once, then null again", () => {
     requestRepositorySession("project-1", "repository-1");
-    expect(consumePendingRepositorySession()).toEqual({ projectId: "project-1", repositoryId: "repository-1" });
+    expect(consumePendingRepositorySession()).toEqual({
+      projectId: "project-1",
+      repositoryId: "repository-1",
+      worktreeId: null,
+    });
     expect(consumePendingRepositorySession()).toBeNull();
+  });
+
+  it("preserves an explicit worktreeId when requested", () => {
+    requestRepositorySession("project-1", "repository-1", "worktree-1");
+    expect(consumePendingRepositorySession()).toEqual({
+      projectId: "project-1",
+      repositoryId: "repository-1",
+      worktreeId: "worktree-1",
+    });
   });
 
   it("a later request replaces an unconsumed earlier one", () => {
     requestRepositorySession("project-1", "repository-1");
     requestRepositorySession("project-2", "repository-2");
-    expect(consumePendingRepositorySession()).toEqual({ projectId: "project-2", repositoryId: "repository-2" });
+    expect(consumePendingRepositorySession()).toEqual({
+      projectId: "project-2",
+      repositoryId: "repository-2",
+      worktreeId: null,
+    });
   });
 });

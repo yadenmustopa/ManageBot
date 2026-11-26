@@ -6,18 +6,25 @@ import { type ProjectPort, projectPort } from "./project-port";
 interface RepositoryContext {
   projectName: string;
   repository: OpenBotRepository;
+  branchName: string | null;
 }
 
 async function loadRepositoryContext(port: ProjectPort, threadId: string): Promise<RepositoryContext | null> {
   const scope = await port.threadRepositoryScope.getScope({ threadId });
   if (!scope.projectId || !scope.repositoryId) return null;
-  const [project, repositories] = await Promise.all([
+  const [project, repositories, worktrees] = await Promise.all([
     port.projects.getProject({ projectId: scope.projectId }),
     port.repositories.listForProject({ projectId: scope.projectId }),
+    scope.worktreeId ? port.worktrees.listForRepository({ repositoryId: scope.repositoryId }) : Promise.resolve([]),
   ]);
   const repository = repositories.find((candidate) => candidate.id === scope.repositoryId);
   if (!project || !repository) return null;
-  return { projectName: project.name, repository };
+  const worktree = scope.worktreeId ? worktrees.find((candidate) => candidate.id === scope.worktreeId) : undefined;
+  return {
+    projectName: project.name,
+    repository,
+    branchName: worktree ? worktree.branchName : repository.currentBranch,
+  };
 }
 
 /**
@@ -61,7 +68,7 @@ export function RepositoryContextBadge(props: { threadId: string | null | undefi
           <Text as="span" variant="caption" tone="muted">
             {data().repository.name}
           </Text>
-          <Show when={data().repository.currentBranch}>
+          <Show when={data().branchName}>
             {(branch) => (
               <span class="repository-context-badge-branch">
                 <GitBranch aria-hidden="true" />

@@ -123,10 +123,33 @@
   gap: var(--openbot-space-2, 8px);
 }
 
+.project-repository-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--openbot-space-1, 4px);
+}
+
 .project-repository-item {
   display: flex;
   align-items: center;
   gap: var(--openbot-space-3, 12px);
+}
+
+.project-worktree-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--openbot-space-1, 4px);
+  padding-inline-start: var(--openbot-space-5, 24px);
+}
+
+.project-worktree-item {
+  display: flex;
+  align-items: center;
+  gap: var(--openbot-space-3, 12px);
+}
+
+.project-repository-meta [data-worktree-status="stale"] {
+  color: var(--openbot-danger-text);
 }
 
 .project-repository-meta {
@@ -176,6 +199,7 @@
 .project-editor-footer {
   display: flex;
   justify-content: flex-end;
+  gap: var(--openbot-space-2, 8px);
 }
 
 .repository-context-badge {

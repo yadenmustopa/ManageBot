@@ -63,6 +63,38 @@ function scopedPort(): ProjectPort {
       refreshRepository: async () => repository,
       detachRepository: async () => {},
     },
+    worktrees: {
+      create: async () => {
+        throw new Error("not used");
+      },
+      listForRepository: async () => [
+        {
+          id: "worktree-1",
+          repositoryId: repository.id,
+          hostId: "local",
+          taskId: null,
+          branchName: "feat/worktree-branch",
+          baseRef: "main",
+          canonicalPath: "/home/sam/.openbot-worktrees/mabar-desktop/feat-worktree-branch",
+          managedByApplication: true,
+          lifecycleStatus: "active",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          archivedAt: null,
+        },
+      ],
+      inspect: async ({ worktreeId }) => ({
+        worktreeId,
+        exists: true,
+        isWorkingTree: true,
+        currentBranch: "feat/worktree-branch",
+        dirty: false,
+      }),
+      refresh: async () => {
+        throw new Error("not used");
+      },
+      remove: async () => {},
+    },
     threadRepositoryScope: {
       getScope: async ({ threadId }) => ({
         threadId,
@@ -101,6 +133,30 @@ describe("RepositoryContextBadge", () => {
 
     await waitFor(() => expect(screen.queryByText(project.name)).toBeNull());
     expect(screen.queryByText(repository.name)).toBeNull();
+  });
+
+  it("shows the worktree branch when the thread is scoped to a worktree", async () => {
+    const worktreePort = (): ProjectPort => ({
+      ...scopedPort(),
+      threadRepositoryScope: {
+        getScope: async ({ threadId }) => ({
+          threadId,
+          projectId: project.id,
+          repositoryId: repository.id,
+          worktreeId: "worktree-1",
+        }),
+        setScope: async ({ threadId, projectId, repositoryId, worktreeId }) => ({
+          threadId,
+          projectId,
+          repositoryId,
+          worktreeId: worktreeId ?? null,
+        }),
+      },
+    });
+    render(() => <RepositoryContextBadge threadId="thread-worktree" port={worktreePort} />);
+
+    await waitFor(() => expect(screen.getByText("feat/worktree-branch")).toBeTruthy());
+    expect(screen.queryByText("main")).toBeNull();
   });
 
   it("renders nothing when there is no thread at all", () => {

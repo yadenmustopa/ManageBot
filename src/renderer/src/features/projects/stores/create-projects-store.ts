@@ -1,4 +1,9 @@
-import type { OpenBotProject, OpenBotRepository, ProjectDashboardSummary } from "@openbot/contracts/project";
+import type {
+  OpenBotProject,
+  OpenBotRepository,
+  OpenBotWorktree,
+  ProjectDashboardSummary,
+} from "@openbot/contracts/project";
 import { createStore } from "solid-js";
 import type { ProjectPort } from "../project-port";
 import { readActiveProjectId, writeActiveProjectId } from "../project-selection-storage";
@@ -8,17 +13,17 @@ export interface ProjectsState {
   projects: OpenBotProject[];
   activeProjectId: string | null;
   repositories: OpenBotRepository[];
+  worktreesByRepository: Record<string, OpenBotWorktree[]>;
   dashboard: ProjectDashboardSummary | null;
   loading: boolean;
   error: string | null;
   pending: boolean;
   createOpen: boolean;
   importOpen: boolean;
+  createWorktreeRepositoryId: string | null;
+  dirtyWorktreeToRemove: OpenBotWorktree | null;
 }
 
-// `ipcRenderer.invoke` rejects with Electron's own wrapping, e.g. "Error invoking remote method
-// 'repositories:import': Error: This folder does not exist." Strip it so the dialog shows the
-// backend's actual i18n message, not Electron's transport-level framing.
 const ELECTRON_IPC_ERROR_PREFIX = /^Error invoking remote method '[^']*':\s*(?:[A-Za-z]*Error:\s*)?/;
 
 function errorMessage(cause: unknown): string {
@@ -26,41 +31,57 @@ function errorMessage(cause: unknown): string {
   return raw.replace(ELECTRON_IPC_ERROR_PREFIX, "");
 }
 
-/** Owns the project/repository list state for the Projects page (PRD FR-02/FR-03/FR-13). */
 export function createProjectsStore(port: () => ProjectPort) {
   const [state, setState] = createStore<ProjectsState>({
     workspaceId: null,
     projects: [],
     activeProjectId: null,
     repositories: [],
+    worktreesByRepository: {},
     dashboard: null,
     loading: false,
     error: null,
     pending: false,
     createOpen: false,
     importOpen: false,
+    createWorktreeRepositoryId: null,
+    dirtyWorktreeToRemove: null,
   });
 
-  async function loadRepositories(projectId: string) {
+  let repositoryLoadToken = 0;
+
+  async function loadRepositories(projectId: string, token: number) {
     const [repositories, dashboard] = await Promise.all([
       port().repositories.listForProject({ projectId }),
       port().projects.getDashboardSummary({ projectId }),
     ]);
+    const worktreeEntries =
+      repositories.length === 0
+        ? []
+        : await Promise.all(
+            repositories.map(
+              async (repository) =>
+                [repository.id, await port().worktrees.listForRepository({ repositoryId: repository.id })] as const,
+            ),
+          );
     setState((draft) => {
-      if (draft.activeProjectId !== projectId) return;
+      if (draft.activeProjectId !== projectId || token !== repositoryLoadToken) return;
       draft.repositories = repositories;
+      draft.worktreesByRepository = Object.fromEntries(worktreeEntries);
       draft.dashboard = dashboard;
     });
   }
 
   function selectProject(projectId: string | null) {
+    const token = ++repositoryLoadToken;
     setState((draft) => {
       draft.activeProjectId = projectId;
       draft.repositories = [];
+      draft.worktreesByRepository = {};
       draft.dashboard = null;
     });
     writeActiveProjectId(projectId);
-    if (projectId) void loadRepositories(projectId);
+    if (projectId) void loadRepositories(projectId, token);
   }
 
   async function load(): Promise<void> {
@@ -127,10 +148,12 @@ export function createProjectsStore(port: () => ProjectPort) {
       const repository = await port().repositories.importRepository({ projectId, path });
       setState((draft) => {
         if (draft.activeProjectId !== projectId) return;
+        ++repositoryLoadToken;
         draft.repositories = [...draft.repositories, repository];
+        draft.worktreesByRepository[repository.id] = [];
         draft.dashboard = draft.dashboard
           ? { ...draft.dashboard, repositoryCount: draft.dashboard.repositoryCount + 1 }
-          : draft.dashboard;
+          : { projectId, repositoryCount: draft.repositories.length };
         draft.pending = false;
         draft.importOpen = false;
       });
@@ -151,10 +174,12 @@ export function createProjectsStore(port: () => ProjectPort) {
       await port().repositories.detachRepository({ projectId, repositoryId });
       setState((draft) => {
         if (draft.activeProjectId !== projectId) return;
+        ++repositoryLoadToken;
         draft.repositories = draft.repositories.filter((repository) => repository.id !== repositoryId);
+        delete draft.worktreesByRepository[repositoryId];
         draft.dashboard = draft.dashboard
           ? { ...draft.dashboard, repositoryCount: Math.max(0, draft.dashboard.repositoryCount - 1) }
-          : draft.dashboard;
+          : { projectId, repositoryCount: draft.repositories.length };
       });
     } catch (cause) {
       setState((draft) => {
@@ -166,15 +191,113 @@ export function createProjectsStore(port: () => ProjectPort) {
   async function refreshRepository(repositoryId: string): Promise<void> {
     try {
       const refreshed = await port().repositories.refreshRepository({ repositoryId });
+      const worktrees = await port().worktrees.listForRepository({ repositoryId });
       setState((draft) => {
         draft.repositories = draft.repositories.map((repository) =>
           repository.id === repositoryId ? refreshed : repository,
+        );
+        draft.worktreesByRepository[repositoryId] = worktrees;
+      });
+    } catch (cause) {
+      setState((draft) => {
+        draft.error = errorMessage(cause);
+      });
+    }
+  }
+
+  async function createWorktree(input: {
+    repositoryId: string;
+    branchName: string;
+    baseRef: string | null;
+  }): Promise<boolean> {
+    setState((draft) => {
+      draft.pending = true;
+      draft.error = null;
+    });
+    try {
+      const worktree = await port().worktrees.create({
+        repositoryId: input.repositoryId,
+        branchName: input.branchName,
+        baseRef: input.baseRef,
+      });
+      setState((draft) => {
+        const existing = draft.worktreesByRepository[input.repositoryId] ?? [];
+        draft.worktreesByRepository[input.repositoryId] = [...existing, worktree];
+        draft.pending = false;
+        draft.createWorktreeRepositoryId = null;
+      });
+      return true;
+    } catch (cause) {
+      setState((draft) => {
+        draft.pending = false;
+        draft.error = errorMessage(cause);
+      });
+      return false;
+    }
+  }
+
+  async function refreshWorktree(worktreeId: string): Promise<void> {
+    try {
+      const refreshed = await port().worktrees.refresh({ worktreeId });
+      setState((draft) => {
+        const list = draft.worktreesByRepository[refreshed.repositoryId] ?? [];
+        draft.worktreesByRepository[refreshed.repositoryId] = list.map((item) =>
+          item.id === worktreeId ? refreshed : item,
         );
       });
     } catch (cause) {
       setState((draft) => {
         draft.error = errorMessage(cause);
       });
+    }
+  }
+
+  async function removeWorktree(worktree: OpenBotWorktree): Promise<void> {
+    setState((draft) => {
+      draft.error = null;
+    });
+    try {
+      const status = await port().worktrees.inspect({ worktreeId: worktree.id });
+      if (status.exists && status.dirty) {
+        setState((draft) => {
+          draft.dirtyWorktreeToRemove = worktree;
+        });
+        return;
+      }
+      await port().worktrees.remove({ worktreeId: worktree.id, force: false });
+      setState((draft) => {
+        const list = draft.worktreesByRepository[worktree.repositoryId] ?? [];
+        draft.worktreesByRepository[worktree.repositoryId] = list.filter((item) => item.id !== worktree.id);
+      });
+    } catch (cause) {
+      setState((draft) => {
+        draft.error = errorMessage(cause);
+      });
+    }
+  }
+
+  async function confirmForceRemoveWorktree(): Promise<boolean> {
+    const target = state.dirtyWorktreeToRemove;
+    if (!target) return false;
+    setState((draft) => {
+      draft.pending = true;
+      draft.error = null;
+    });
+    try {
+      await port().worktrees.remove({ worktreeId: target.id, force: true });
+      setState((draft) => {
+        const list = draft.worktreesByRepository[target.repositoryId] ?? [];
+        draft.worktreesByRepository[target.repositoryId] = list.filter((item) => item.id !== target.id);
+        draft.pending = false;
+        draft.dirtyWorktreeToRemove = null;
+      });
+      return true;
+    } catch (cause) {
+      setState((draft) => {
+        draft.pending = false;
+        draft.error = errorMessage(cause);
+      });
+      return false;
     }
   }
 
@@ -186,6 +309,15 @@ export function createProjectsStore(port: () => ProjectPort) {
     importRepository,
     detachRepository,
     refreshRepository,
+    createWorktree,
+    refreshWorktree,
+    removeWorktree,
+    confirmForceRemoveWorktree,
+    cancelForceRemoveWorktree: () =>
+      setState((draft) => {
+        draft.dirtyWorktreeToRemove = null;
+        draft.error = null;
+      }),
     openCreate: () =>
       setState((draft) => {
         draft.createOpen = true;
@@ -202,6 +334,16 @@ export function createProjectsStore(port: () => ProjectPort) {
     closeImport: () =>
       setState((draft) => {
         draft.importOpen = false;
+        draft.error = null;
+      }),
+    openCreateWorktree: (repositoryId: string) =>
+      setState((draft) => {
+        draft.createWorktreeRepositoryId = repositoryId;
+        draft.error = null;
+      }),
+    closeCreateWorktree: () =>
+      setState((draft) => {
+        draft.createWorktreeRepositoryId = null;
         draft.error = null;
       }),
   };

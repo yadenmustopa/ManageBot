@@ -98,6 +98,7 @@ const AgentActions = createSimpleContext({
           threadId,
           projectId: pending.projectId,
           repositoryId: pending.repositoryId,
+          worktreeId: pending.worktreeId,
         });
       } catch {
         // Best-effort: a failure here only means the new conversation won't show its repository

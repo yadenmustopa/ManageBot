@@ -104,6 +104,45 @@ function fakePort(): { port: ProjectPort; dispose: () => void } {
         if (index !== -1) links.splice(index, 1);
       },
     },
+    worktrees: {
+      create: async ({ repositoryId, branchName, baseRef }) => ({
+        id: `worktree-${branchName}`,
+        repositoryId,
+        hostId: "local",
+        taskId: null,
+        branchName,
+        baseRef: baseRef ?? null,
+        canonicalPath: `/home/me/.openbot-worktrees/mabar-desktop/${branchName}`,
+        managedByApplication: true,
+        lifecycleStatus: "active",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+        archivedAt: null,
+      }),
+      listForRepository: async () => [],
+      inspect: async ({ worktreeId }) => ({
+        worktreeId,
+        exists: true,
+        isWorkingTree: true,
+        currentBranch: "feat/test",
+        dirty: false,
+      }),
+      refresh: async ({ worktreeId }) => ({
+        id: worktreeId,
+        repositoryId: "repo-1",
+        hostId: "local",
+        taskId: null,
+        branchName: "feat/test",
+        baseRef: null,
+        canonicalPath: "/home/me/.openbot-worktrees/mabar-desktop/feat-test",
+        managedByApplication: true,
+        lifecycleStatus: "active",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+        archivedAt: null,
+      }),
+      remove: async () => {},
+    },
     threadRepositoryScope: {
       getScope: async ({ threadId }) => ({ threadId, projectId: null, repositoryId: null, worktreeId: null }),
       setScope: async ({ threadId, projectId, repositoryId, worktreeId }) => ({
@@ -207,6 +246,46 @@ describe("createProjectsStore", () => {
     await store.detachRepository(repositoryId);
     expect(store.state.repositories).toHaveLength(0);
     expect(store.state.dashboard?.repositoryCount).toBe(0);
+    dispose();
+  });
+
+  it("creates a worktree and requires explicit confirmation before force-removing a dirty worktree", async () => {
+    const { port } = fakePort();
+    const removeCalls: Array<{ worktreeId: string; force: boolean }> = [];
+    port.worktrees.inspect = async ({ worktreeId }) => ({
+      worktreeId,
+      exists: true,
+      isWorkingTree: true,
+      currentBranch: "feat/dirty",
+      dirty: true,
+    });
+    port.worktrees.remove = async ({ worktreeId, force }) => {
+      removeCalls.push({ worktreeId, force: Boolean(force) });
+    };
+
+    const { store, dispose } = withStore(port);
+    await store.load();
+    await store.createProject({ name: "Mabar Desktop", description: "" });
+    await store.importRepository("/home/me/dev/mabar-desktop");
+    const repositoryId = store.state.repositories[0]?.id;
+    if (!repositoryId) throw new Error("expected a repository id");
+
+    const created = await store.createWorktree({ repositoryId, branchName: "feat/dirty", baseRef: "main" });
+    expect(created).toBe(true);
+    const worktree = store.state.worktreesByRepository[repositoryId]?.[0];
+    expect(worktree?.branchName).toBe("feat/dirty");
+    if (!worktree) throw new Error("expected a worktree");
+
+    await store.removeWorktree(worktree);
+    expect(removeCalls).toHaveLength(0);
+    expect(store.state.dirtyWorktreeToRemove?.id).toBe(worktree.id);
+    expect(store.state.worktreesByRepository[repositoryId]).toHaveLength(1);
+
+    const confirmed = await store.confirmForceRemoveWorktree();
+    expect(confirmed).toBe(true);
+    expect(removeCalls).toEqual([{ worktreeId: worktree.id, force: true }]);
+    expect(store.state.dirtyWorktreeToRemove).toBeNull();
+    expect(store.state.worktreesByRepository[repositoryId]).toHaveLength(0);
     dispose();
   });
 });

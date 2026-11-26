@@ -1,4 +1,4 @@
-import type { RepositoryHealth } from "@openbot/contracts/project";
+import type { RepositoryHealth, WorktreeLifecycleStatus } from "@openbot/contracts/project";
 import {
   Button,
   FolderGit2,
@@ -12,8 +12,10 @@ import {
   ItemGroup,
   ItemTitle,
   MessageSquare,
+  Plus,
   RefreshCw,
   Text,
+  Trash2,
   X,
 } from "@openbot/ui";
 import { useText } from "@openbot/ui/text";
@@ -36,14 +38,25 @@ function healthLabel(t: ReturnType<typeof useText>["t"], health: RepositoryHealt
   }
 }
 
+function worktreeStatusLabel(t: ReturnType<typeof useText>["t"], status: WorktreeLifecycleStatus): string {
+  switch (status) {
+    case "active":
+      return t("project.worktree.status.active");
+    case "stale":
+      return t("project.worktree.status.stale");
+    case "archived":
+      return t("project.worktree.status.archived");
+  }
+}
+
 export function ProjectDashboard() {
   const projects = useProjects();
   const agents = useAgents();
   const { t } = useText();
   const activeProject = () => projects.state.projects.find((project) => project.id === projects.state.activeProjectId);
 
-  function startCodingSession(projectId: string, repositoryId: string) {
-    projects.requestRepositorySession(projectId, repositoryId);
+  function startCodingSession(projectId: string, repositoryId: string, worktreeId: string | null = null) {
+    projects.requestRepositorySession(projectId, repositoryId, worktreeId);
     agents.openAgentSetup();
   }
 
@@ -79,49 +92,104 @@ export function ProjectDashboard() {
                 fallback={<p class="project-dashboard-empty">{t("project.dashboard.noRepositories")}</p>}
               >
                 <For each={projects.state.repositories}>
-                  {(repository) => (
-                    <Item class="project-repository-item">
-                      <FolderGit2 aria-hidden="true" />
-                      <ItemContent>
-                        <ItemTitle>{repository.name}</ItemTitle>
-                        <ItemDescription>{repository.canonicalPath}</ItemDescription>
-                        <ItemDescription class="project-repository-meta">
-                          <Show when={repository.currentBranch}>
-                            {(branch) => (
-                              <span class="project-repository-branch">
-                                <GitBranch aria-hidden="true" />
-                                {branch()}
-                              </span>
-                            )}
-                          </Show>
-                          <span data-health={repository.health}>{healthLabel(t, repository.health)}</span>
-                        </ItemDescription>
-                      </ItemContent>
-                      <ItemActions>
-                        <IconButton
-                          label={t("project.repository.newSession")}
-                          variant="ghost"
-                          onClick={() => startCodingSession(project().id, repository.id)}
-                        >
-                          <MessageSquare />
-                        </IconButton>
-                        <IconButton
-                          label={t("project.repository.refresh")}
-                          variant="ghost"
-                          onClick={() => void projects.refreshRepository(repository.id)}
-                        >
-                          <RefreshCw />
-                        </IconButton>
-                        <IconButton
-                          label={t("project.repository.remove")}
-                          variant="ghost"
-                          onClick={() => void projects.detachRepository(repository.id)}
-                        >
-                          <X />
-                        </IconButton>
-                      </ItemActions>
-                    </Item>
-                  )}
+                  {(repository) => {
+                    const worktrees = () => projects.state.worktreesByRepository[repository.id] ?? [];
+                    return (
+                      <div class="project-repository-group">
+                        <Item class="project-repository-item">
+                          <FolderGit2 aria-hidden="true" />
+                          <ItemContent>
+                            <ItemTitle>{repository.name}</ItemTitle>
+                            <ItemDescription>{repository.canonicalPath}</ItemDescription>
+                            <ItemDescription class="project-repository-meta">
+                              <Show when={repository.currentBranch}>
+                                {(branch) => (
+                                  <span class="project-repository-branch">
+                                    <GitBranch aria-hidden="true" />
+                                    {branch()}
+                                  </span>
+                                )}
+                              </Show>
+                              <span data-health={repository.health}>{healthLabel(t, repository.health)}</span>
+                            </ItemDescription>
+                          </ItemContent>
+                          <ItemActions>
+                            <IconButton
+                              label={t("project.worktree.new")}
+                              variant="ghost"
+                              onClick={() => projects.openCreateWorktree(repository.id)}
+                            >
+                              <Plus />
+                            </IconButton>
+                            <IconButton
+                              label={t("project.repository.newSession")}
+                              variant="ghost"
+                              onClick={() => startCodingSession(project().id, repository.id)}
+                            >
+                              <MessageSquare />
+                            </IconButton>
+                            <IconButton
+                              label={t("project.repository.refresh")}
+                              variant="ghost"
+                              onClick={() => void projects.refreshRepository(repository.id)}
+                            >
+                              <RefreshCw />
+                            </IconButton>
+                            <IconButton
+                              label={t("project.repository.remove")}
+                              variant="ghost"
+                              onClick={() => void projects.detachRepository(repository.id)}
+                            >
+                              <X />
+                            </IconButton>
+                          </ItemActions>
+                        </Item>
+                        <Show when={worktrees().length > 0}>
+                          <ItemGroup class="project-worktree-list">
+                            <For each={worktrees()}>
+                              {(worktree) => (
+                                <Item class="project-worktree-item">
+                                  <GitBranch aria-hidden="true" />
+                                  <ItemContent>
+                                    <ItemTitle>{worktree.branchName}</ItemTitle>
+                                    <ItemDescription>{worktree.canonicalPath}</ItemDescription>
+                                    <ItemDescription class="project-repository-meta">
+                                      <span data-worktree-status={worktree.lifecycleStatus}>
+                                        {worktreeStatusLabel(t, worktree.lifecycleStatus)}
+                                      </span>
+                                    </ItemDescription>
+                                  </ItemContent>
+                                  <ItemActions>
+                                    <IconButton
+                                      label={t("project.worktree.newSession")}
+                                      variant="ghost"
+                                      onClick={() => startCodingSession(project().id, repository.id, worktree.id)}
+                                    >
+                                      <MessageSquare />
+                                    </IconButton>
+                                    <IconButton
+                                      label={t("project.worktree.refresh")}
+                                      variant="ghost"
+                                      onClick={() => void projects.refreshWorktree(worktree.id)}
+                                    >
+                                      <RefreshCw />
+                                    </IconButton>
+                                    <IconButton
+                                      label={t("project.worktree.remove")}
+                                      variant="ghost"
+                                      onClick={() => void projects.removeWorktree(worktree)}
+                                    >
+                                      <Trash2 />
+                                    </IconButton>
+                                  </ItemActions>
+                                </Item>
+                              )}
+                            </For>
+                          </ItemGroup>
+                        </Show>
+                      </div>
+                    );
+                  }}
                 </For>
               </Show>
             </ItemGroup>
