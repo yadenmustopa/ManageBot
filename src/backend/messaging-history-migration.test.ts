@@ -126,9 +126,9 @@ describe("messaging history migration", () => {
     const db = databaseAt(61);
     seed(db, 61);
     const before = contents(db);
-    db.exec("INSERT INTO schema_migrations VALUES(74,'now')");
+    db.exec("INSERT INTO schema_migrations VALUES(75,'now')");
     expect(() => migrateOpenBotDatabase(db)).toThrow("newer than this application supports");
-    db.exec("DELETE FROM schema_migrations WHERE version=74; DELETE FROM schema_migrations WHERE version=20");
+    db.exec("DELETE FROM schema_migrations WHERE version=75; DELETE FROM schema_migrations WHERE version=20");
     expect(() => migrateOpenBotDatabase(db)).toThrow("missing version 20");
     expect(contents(db)).toEqual(before);
     expect(historyObjects(db)).toEqual([]);

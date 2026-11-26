@@ -336,12 +336,16 @@ import {
   decodePasswordManagerResponses,
 } from "./password-manager-decoding";
 import {
+  decodeDevelopmentTask,
+  decodeDevelopmentTaskList,
+  decodeDevelopmentTaskOrNull,
   decodeProject,
   decodeProjectDashboardSummary,
   decodeProjectList,
   decodeProjectOrNull,
   decodeRepository,
   decodeRepositoryList,
+  decodeStringList,
   decodeThreadRepositoryScope,
   decodeWorkspace,
   decodeWorkspaceList,
@@ -1200,6 +1204,16 @@ const openbotApi: OpenBotDesktopApi = {
     inspect: decodeWorktreeStatus,
     refresh: decodeWorktree,
     remove: decodeVoid,
+  }),
+  developmentTasks: bridgeGroup(IPC_ENDPOINTS.developmentTasks, {
+    create: decodeDevelopmentTask,
+    listForProject: decodeDevelopmentTaskList,
+    get: decodeDevelopmentTaskOrNull,
+    update: decodeDevelopmentTask,
+    archive: decodeVoid,
+    addDependency: decodeVoid,
+    removeDependency: decodeVoid,
+    listDependencies: decodeStringList,
   }),
   threadRepositoryScope: bridgeGroup(IPC_ENDPOINTS.threadRepositoryScope, {
     getScope: decodeThreadRepositoryScope,

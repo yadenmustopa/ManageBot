@@ -94,6 +94,7 @@ import { crmIpcHandlers } from "./ipc/crm-handlers";
 import { customAgentIpcHandlers } from "./ipc/custom-agent-handlers";
 import { customProviderIpcHandlers } from "./ipc/custom-provider-handlers";
 import { registerIpcGroups } from "./ipc/define-ipc-group";
+import { developmentTaskIpcHandlers } from "./ipc/development-task-handlers";
 import { dynamicIslandIpcHandlers } from "./ipc/dynamic-island-handlers";
 import { eventsIpcHandlers } from "./ipc/events-handlers";
 import { githubConnectorIpcHandlers } from "./ipc/github-connector-handlers";
@@ -793,6 +794,7 @@ function registerIpcHandlers({
   projects,
   repositories,
   worktrees,
+  developmentTasks,
   threadRepositoryScopes,
   hostedServers,
   localServers,
@@ -942,6 +944,7 @@ function registerIpcHandlers({
     ...projectIpcHandlers({ projects, repositories }),
     ...repositoryIpcHandlers({ repositories }),
     ...worktreeIpcHandlers({ worktrees }),
+    ...developmentTaskIpcHandlers({ developmentTasks }),
     ...threadRepositoryScopeIpcHandlers({ threadRepositoryScopes }),
     ...routineFeedIpcHandlers({ routineFeed }),
     ...eventsIpcHandlers({ events, remoteServers }),

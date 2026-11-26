@@ -511,4 +511,8 @@ export const messages = defineMessages("error.backend", {
   "error.backend.worktreeDirtyRemovalRequiresForce":
     "This worktree has uncommitted changes. Confirm to remove it anyway.",
   "error.backend.branchAlreadyExists": "A branch with this name already exists.",
+  "error.backend.taskGone": "This development task no longer exists.",
+  "error.backend.taskTitleInvalid": "Enter a valid task title.",
+  "error.backend.taskDoneRequiresEvidence": "Record test evidence before marking a coding task as done.",
+  "error.backend.taskDependencyCycle": "This dependency would create a cycle.",
 });

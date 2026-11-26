@@ -513,3 +513,267 @@ export function parseRemoveWorktreeInput(value: unknown): RemoveWorktreeInput | 
   }
   return input;
 }
+
+export const DEVELOPMENT_TASK_TYPE_VALUES = [
+  "feature",
+  "bug",
+  "refactor",
+  "documentation",
+  "research",
+  "testing",
+  "security",
+  "infrastructure",
+  "maintenance",
+] as const;
+
+export type DevelopmentTaskType = (typeof DEVELOPMENT_TASK_TYPE_VALUES)[number];
+
+export const DEVELOPMENT_TASK_PRIORITY_VALUES = ["p0", "p1", "p2", "p3"] as const;
+
+export type DevelopmentTaskPriority = (typeof DEVELOPMENT_TASK_PRIORITY_VALUES)[number];
+
+export const DEVELOPMENT_TASK_STATUS_VALUES = [
+  "backlog",
+  "ready",
+  "planning",
+  "in-progress",
+  "testing",
+  "in-review",
+  "changes-requested",
+  "blocked",
+  "ready-to-merge",
+  "done",
+  "cancelled",
+] as const;
+
+export type DevelopmentTaskStatus = (typeof DEVELOPMENT_TASK_STATUS_VALUES)[number];
+
+export interface OpenBotDevelopmentTask {
+  id: string;
+  projectId: string;
+  repositoryId: string | null;
+  parentTaskId: string | null;
+  title: string;
+  description: string;
+  acceptanceCriteria: string;
+  taskType: DevelopmentTaskType;
+  priority: DevelopmentTaskPriority;
+  status: DevelopmentTaskStatus;
+  assignedAgentId: string | null;
+  worktreeId: string | null;
+  externalIssueRef: string | null;
+  externalPrRef: string | null;
+  blockerReason: string | null;
+  testEvidence: string | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  archivedAt: string | null;
+}
+
+export function createDevelopmentTaskId(): string {
+  return `devtask-${crypto.randomUUID()}`;
+}
+
+function parseDevelopmentTask(row: DynamicRecord): OpenBotDevelopmentTask | null {
+  if (
+    !isString(row.id) ||
+    !isString(row.projectId) ||
+    !isNullableString(row.repositoryId) ||
+    !isNullableString(row.parentTaskId) ||
+    !isString(row.title) ||
+    !isString(row.description) ||
+    !isString(row.acceptanceCriteria) ||
+    !isOneOf(DEVELOPMENT_TASK_TYPE_VALUES, row.taskType) ||
+    !isOneOf(DEVELOPMENT_TASK_PRIORITY_VALUES, row.priority) ||
+    !isOneOf(DEVELOPMENT_TASK_STATUS_VALUES, row.status) ||
+    !isNullableString(row.assignedAgentId) ||
+    !isNullableString(row.worktreeId) ||
+    !isNullableString(row.externalIssueRef) ||
+    !isNullableString(row.externalPrRef) ||
+    !isNullableString(row.blockerReason) ||
+    !isNullableString(row.testEvidence) ||
+    !isString(row.createdAt) ||
+    !isString(row.updatedAt) ||
+    !isNullableString(row.completedAt) ||
+    !isNullableString(row.archivedAt)
+  )
+    return null;
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    repositoryId: row.repositoryId,
+    parentTaskId: row.parentTaskId,
+    title: row.title,
+    description: row.description,
+    acceptanceCriteria: row.acceptanceCriteria,
+    taskType: row.taskType,
+    priority: row.priority,
+    status: row.status,
+    assignedAgentId: row.assignedAgentId,
+    worktreeId: row.worktreeId,
+    externalIssueRef: row.externalIssueRef,
+    externalPrRef: row.externalPrRef,
+    blockerReason: row.blockerReason,
+    testEvidence: row.testEvidence,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    completedAt: row.completedAt,
+    archivedAt: row.archivedAt,
+  };
+}
+
+export function parseDevelopmentTaskOrNull(value: unknown): OpenBotDevelopmentTask | null {
+  return isDynamicRecord(value) ? parseDevelopmentTask(value) : null;
+}
+
+export function parseDevelopmentTaskList(value: unknown): OpenBotDevelopmentTask[] | null {
+  if (!Array.isArray(value)) return null;
+  const tasks: OpenBotDevelopmentTask[] = [];
+  for (const item of value) {
+    if (!isDynamicRecord(item)) return null;
+    const task = parseDevelopmentTask(item);
+    if (!task) return null;
+    tasks.push(task);
+  }
+  return tasks;
+}
+
+export function parseStringList(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const items: string[] = [];
+  for (const item of value) {
+    if (!isString(item)) return null;
+    items.push(item);
+  }
+  return items;
+}
+
+export interface CreateDevelopmentTaskInput {
+  projectId: string;
+  repositoryId?: string | null;
+  parentTaskId?: string | null;
+  title: string;
+  description?: string;
+  acceptanceCriteria?: string;
+  taskType?: DevelopmentTaskType;
+  priority?: DevelopmentTaskPriority;
+}
+
+export function parseCreateDevelopmentTaskInput(value: unknown): CreateDevelopmentTaskInput | null {
+  if (!isDynamicRecord(value) || !isString(value.projectId) || !isNonEmptyName(value.title)) return null;
+  const input: CreateDevelopmentTaskInput = { projectId: value.projectId, title: value.title };
+  if (value.repositoryId !== undefined) {
+    if (!isNullableString(value.repositoryId)) return null;
+    input.repositoryId = value.repositoryId;
+  }
+  if (value.parentTaskId !== undefined) {
+    if (!isNullableString(value.parentTaskId)) return null;
+    input.parentTaskId = value.parentTaskId;
+  }
+  if (value.description !== undefined) {
+    if (!isString(value.description) || value.description.length > MAX_DESCRIPTION_LENGTH) return null;
+    input.description = value.description;
+  }
+  if (value.acceptanceCriteria !== undefined) {
+    if (!isString(value.acceptanceCriteria) || value.acceptanceCriteria.length > MAX_DESCRIPTION_LENGTH) return null;
+    input.acceptanceCriteria = value.acceptanceCriteria;
+  }
+  if (value.taskType !== undefined) {
+    if (!isOneOf(DEVELOPMENT_TASK_TYPE_VALUES, value.taskType)) return null;
+    input.taskType = value.taskType;
+  }
+  if (value.priority !== undefined) {
+    if (!isOneOf(DEVELOPMENT_TASK_PRIORITY_VALUES, value.priority)) return null;
+    input.priority = value.priority;
+  }
+  return input;
+}
+
+export interface UpdateDevelopmentTaskInput {
+  taskId: string;
+  title?: string;
+  description?: string;
+  acceptanceCriteria?: string;
+  taskType?: DevelopmentTaskType;
+  priority?: DevelopmentTaskPriority;
+  status?: DevelopmentTaskStatus;
+  assignedAgentId?: string | null;
+  worktreeId?: string | null;
+  externalIssueRef?: string | null;
+  externalPrRef?: string | null;
+  blockerReason?: string | null;
+  testEvidence?: string | null;
+}
+
+export function parseUpdateDevelopmentTaskInput(value: unknown): UpdateDevelopmentTaskInput | null {
+  if (!isDynamicRecord(value) || !isString(value.taskId)) return null;
+  const input: UpdateDevelopmentTaskInput = { taskId: value.taskId };
+  if (value.title !== undefined) {
+    if (!isNonEmptyName(value.title)) return null;
+    input.title = value.title;
+  }
+  if (value.description !== undefined) {
+    if (!isString(value.description) || value.description.length > MAX_DESCRIPTION_LENGTH) return null;
+    input.description = value.description;
+  }
+  if (value.acceptanceCriteria !== undefined) {
+    if (!isString(value.acceptanceCriteria) || value.acceptanceCriteria.length > MAX_DESCRIPTION_LENGTH) return null;
+    input.acceptanceCriteria = value.acceptanceCriteria;
+  }
+  if (value.taskType !== undefined) {
+    if (!isOneOf(DEVELOPMENT_TASK_TYPE_VALUES, value.taskType)) return null;
+    input.taskType = value.taskType;
+  }
+  if (value.priority !== undefined) {
+    if (!isOneOf(DEVELOPMENT_TASK_PRIORITY_VALUES, value.priority)) return null;
+    input.priority = value.priority;
+  }
+  if (value.status !== undefined) {
+    if (!isOneOf(DEVELOPMENT_TASK_STATUS_VALUES, value.status)) return null;
+    input.status = value.status;
+  }
+  if (value.assignedAgentId !== undefined) {
+    if (!isNullableString(value.assignedAgentId)) return null;
+    input.assignedAgentId = value.assignedAgentId;
+  }
+  if (value.worktreeId !== undefined) {
+    if (!isNullableString(value.worktreeId)) return null;
+    input.worktreeId = value.worktreeId;
+  }
+  if (value.externalIssueRef !== undefined) {
+    if (!isNullableString(value.externalIssueRef)) return null;
+    input.externalIssueRef = value.externalIssueRef;
+  }
+  if (value.externalPrRef !== undefined) {
+    if (!isNullableString(value.externalPrRef)) return null;
+    input.externalPrRef = value.externalPrRef;
+  }
+  if (value.blockerReason !== undefined) {
+    if (!isNullableString(value.blockerReason)) return null;
+    input.blockerReason = value.blockerReason;
+  }
+  if (value.testEvidence !== undefined) {
+    if (!isNullableString(value.testEvidence)) return null;
+    input.testEvidence = value.testEvidence;
+  }
+  return input;
+}
+
+export interface DevelopmentTaskIdInput {
+  taskId: string;
+}
+
+export function parseDevelopmentTaskIdInput(value: unknown): DevelopmentTaskIdInput | null {
+  return isDynamicRecord(value) && isString(value.taskId) ? { taskId: value.taskId } : null;
+}
+
+export interface DevelopmentTaskDependencyInput {
+  taskId: string;
+  dependsOnTaskId: string;
+}
+
+export function parseDevelopmentTaskDependencyInput(value: unknown): DevelopmentTaskDependencyInput | null {
+  if (!isDynamicRecord(value) || !isString(value.taskId) || !isString(value.dependsOnTaskId)) return null;
+  return { taskId: value.taskId, dependsOnTaskId: value.dependsOnTaskId };
+}

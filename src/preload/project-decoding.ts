@@ -1,14 +1,18 @@
 import {
+  type OpenBotDevelopmentTask,
   type OpenBotProject,
   type OpenBotRepository,
   type OpenBotWorkspace,
   type OpenBotWorktree,
   type ProjectDashboardSummary,
+  parseDevelopmentTaskList,
+  parseDevelopmentTaskOrNull,
   parseProjectDashboardSummary,
   parseProjectList,
   parseProjectOrNull,
   parseRepositoryList,
   parseRepositoryOrNull,
+  parseStringList,
   parseThreadRepositoryScope,
   parseWorkspaceList,
   parseWorkspaceOrNull,
@@ -59,3 +63,14 @@ export const decodeWorktreeList = (value: unknown): OpenBotWorktree[] =>
 
 export const decodeWorktreeStatus = (value: unknown): WorktreeStatus =>
   required(parseWorktreeStatus(value), "worktree status response");
+
+export const decodeDevelopmentTask = (value: unknown): OpenBotDevelopmentTask =>
+  required(parseDevelopmentTaskOrNull(value), "development task response");
+
+export const decodeDevelopmentTaskOrNull = (value: unknown): OpenBotDevelopmentTask | null =>
+  value === null ? null : decodeDevelopmentTask(value);
+
+export const decodeDevelopmentTaskList = (value: unknown): OpenBotDevelopmentTask[] =>
+  required(parseDevelopmentTaskList(value), "development task list response");
+
+export const decodeStringList = (value: unknown): string[] => required(parseStringList(value), "string list response");

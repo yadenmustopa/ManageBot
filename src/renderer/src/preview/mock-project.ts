@@ -1,19 +1,25 @@
 import type {
+  DevelopmentTasksDesktopApi,
   ProjectsDesktopApi,
   RepositoriesDesktopApi,
   ThreadRepositoryScopeDesktopApi,
   WorktreesDesktopApi,
 } from "@openbot/contracts/ipc";
 import {
+  type CreateDevelopmentTaskInput,
   type CreateProjectInput,
   type CreateWorktreeInput,
+  createDevelopmentTaskId,
   createProjectId,
   createRepositoryId,
   createWorkspaceId,
   createWorktreeId,
   type DetachRepositoryInput,
+  type DevelopmentTaskDependencyInput,
+  type DevelopmentTaskIdInput,
   type ImportRepositoryInput,
   LOCAL_HOST_ID,
+  type OpenBotDevelopmentTask,
   type OpenBotProject,
   type OpenBotRepository,
   type OpenBotWorkspace,
@@ -23,6 +29,7 @@ import {
   type RepositoryIdInput,
   type SetThreadRepositoryScopeInput,
   type ThreadIdInput,
+  type UpdateDevelopmentTaskInput,
   type UpdateProjectInput,
   type WorktreeIdInput,
 } from "@openbot/contracts/project";
@@ -99,6 +106,7 @@ export function createMockProjectWorkspace(): {
   projects: ProjectsDesktopApi;
   repositories: RepositoriesDesktopApi;
   worktrees: WorktreesDesktopApi;
+  developmentTasks: DevelopmentTasksDesktopApi;
   threadRepositoryScope: ThreadRepositoryScopeDesktopApi;
 } {
   const workspace = seedWorkspace();
@@ -275,10 +283,91 @@ export function createMockProjectWorkspace(): {
     },
   };
 
+  const devTasks = new Map<string, OpenBotDevelopmentTask>();
+  const devTaskDeps = new Map<string, Set<string>>();
+
+  const developmentTasksApi: DevelopmentTasksDesktopApi = {
+    create: async (input: CreateDevelopmentTaskInput) => {
+      const now = new Date().toISOString();
+      const task: OpenBotDevelopmentTask = {
+        id: createDevelopmentTaskId(),
+        projectId: input.projectId,
+        repositoryId: input.repositoryId ?? null,
+        parentTaskId: input.parentTaskId ?? null,
+        title: input.title.trim(),
+        description: input.description ?? "",
+        acceptanceCriteria: input.acceptanceCriteria ?? "",
+        taskType: input.taskType ?? "feature",
+        priority: input.priority ?? "p2",
+        status: "backlog",
+        assignedAgentId: null,
+        worktreeId: null,
+        externalIssueRef: null,
+        externalPrRef: null,
+        blockerReason: null,
+        testEvidence: null,
+        createdAt: now,
+        updatedAt: now,
+        completedAt: null,
+        archivedAt: null,
+      };
+      devTasks.set(task.id, task);
+      return structuredClone(task);
+    },
+    listForProject: async ({ projectId }: ProjectIdInput) =>
+      [...devTasks.values()]
+        .filter((task) => task.projectId === projectId && task.archivedAt === null)
+        .map((task) => structuredClone(task)),
+    get: async ({ taskId }: DevelopmentTaskIdInput) => {
+      const task = devTasks.get(taskId);
+      return task ? structuredClone(task) : null;
+    },
+    update: async (input: UpdateDevelopmentTaskInput) => {
+      const current = devTasks.get(input.taskId);
+      if (!current) throw new Error(sourceText("error.backend.taskGone"));
+      const now = new Date().toISOString();
+      const next: OpenBotDevelopmentTask = {
+        ...current,
+        title: input.title !== undefined ? input.title.trim() : current.title,
+        description: input.description !== undefined ? input.description : current.description,
+        acceptanceCriteria:
+          input.acceptanceCriteria !== undefined ? input.acceptanceCriteria : current.acceptanceCriteria,
+        taskType: input.taskType ?? current.taskType,
+        priority: input.priority ?? current.priority,
+        status: input.status ?? current.status,
+        assignedAgentId: input.assignedAgentId !== undefined ? input.assignedAgentId : current.assignedAgentId,
+        worktreeId: input.worktreeId !== undefined ? input.worktreeId : current.worktreeId,
+        externalIssueRef: input.externalIssueRef !== undefined ? input.externalIssueRef : current.externalIssueRef,
+        externalPrRef: input.externalPrRef !== undefined ? input.externalPrRef : current.externalPrRef,
+        blockerReason: input.blockerReason !== undefined ? input.blockerReason : current.blockerReason,
+        testEvidence: input.testEvidence !== undefined ? input.testEvidence : current.testEvidence,
+        updatedAt: now,
+        completedAt: input.status === "done" ? (current.completedAt ?? now) : input.status ? null : current.completedAt,
+      };
+      devTasks.set(next.id, next);
+      return structuredClone(next);
+    },
+    archive: async ({ taskId }: DevelopmentTaskIdInput) => {
+      const current = devTasks.get(taskId);
+      if (!current) throw new Error(sourceText("error.backend.taskGone"));
+      current.archivedAt = new Date().toISOString();
+    },
+    addDependency: async ({ taskId, dependsOnTaskId }: DevelopmentTaskDependencyInput) => {
+      const deps = devTaskDeps.get(taskId) ?? new Set<string>();
+      deps.add(dependsOnTaskId);
+      devTaskDeps.set(taskId, deps);
+    },
+    removeDependency: async ({ taskId, dependsOnTaskId }: DevelopmentTaskDependencyInput) => {
+      devTaskDeps.get(taskId)?.delete(dependsOnTaskId);
+    },
+    listDependencies: async ({ taskId }: DevelopmentTaskIdInput) => [...(devTaskDeps.get(taskId) ?? [])],
+  };
+
   return {
     projects: projectsApi,
     repositories: repositoriesApi,
     worktrees: worktreesApi,
+    developmentTasks: developmentTasksApi,
     threadRepositoryScope: threadRepositoryScopeApi,
   };
 }

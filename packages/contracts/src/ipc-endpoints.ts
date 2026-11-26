@@ -695,10 +695,14 @@ import type { MarketplaceListingLink } from "./marketplace-links";
 import type { AccountSession, MobileConnectedDevice, MobileConnectLink, MobileConnectTicket } from "./mobile-connect";
 import type { AcceptedOwnerTransfer, OwnerTransfer } from "./owner-transfer";
 import type {
+  CreateDevelopmentTaskInput,
   CreateProjectInput,
   CreateWorktreeInput,
   DetachRepositoryInput,
+  DevelopmentTaskDependencyInput,
+  DevelopmentTaskIdInput,
   ImportRepositoryInput,
+  OpenBotDevelopmentTask,
   OpenBotProject,
   OpenBotRepository,
   OpenBotWorkspace,
@@ -710,6 +714,7 @@ import type {
   SetThreadRepositoryScopeInput,
   ThreadIdInput,
   ThreadRepositoryScope,
+  UpdateDevelopmentTaskInput,
   UpdateProjectInput,
   WorkspaceIdInput,
   WorktreeIdInput,
@@ -1462,6 +1467,16 @@ export const IPC_ENDPOINTS = {
     refresh: request<WorktreeIdInput, OpenBotWorktree>()("worktrees:refresh"),
     remove: request<RemoveWorktreeInput, void>()("worktrees:remove"),
   },
+  developmentTasks: {
+    create: request<CreateDevelopmentTaskInput, OpenBotDevelopmentTask>()("development-tasks:create"),
+    listForProject: request<ProjectIdInput, OpenBotDevelopmentTask[]>()("development-tasks:list-for-project"),
+    get: request<DevelopmentTaskIdInput, OpenBotDevelopmentTask | null>()("development-tasks:get"),
+    update: request<UpdateDevelopmentTaskInput, OpenBotDevelopmentTask>()("development-tasks:update"),
+    archive: request<DevelopmentTaskIdInput, void>()("development-tasks:archive"),
+    addDependency: request<DevelopmentTaskDependencyInput, void>()("development-tasks:add-dependency"),
+    removeDependency: request<DevelopmentTaskDependencyInput, void>()("development-tasks:remove-dependency"),
+    listDependencies: request<DevelopmentTaskIdInput, string[]>()("development-tasks:list-dependencies"),
+  },
   license: {
     getState: request<undefined, LicenseState>()("license:get-state"),
     openCheckout: request<LicenseCheckoutRequest, void>()("license:open-checkout"),
@@ -2145,6 +2160,7 @@ export const IPC_GROUP_PATHS = {
   projects: "projects",
   repositories: "repositories",
   worktrees: "worktrees",
+  developmentTasks: "developmentTasks",
   threadRepositoryScope: "threadRepositoryScope",
   license: "license",
   hostedServers: "hostedServers",
