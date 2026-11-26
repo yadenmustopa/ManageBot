@@ -1,5 +1,6 @@
 import { stat } from "node:fs/promises";
 import type { AgentSummary } from "@openbot/contracts/ipc";
+import { LOCAL_HOST_ID } from "@openbot/contracts/project";
 import { sourceText } from "@openbot/i18n/source";
 import { Effect, Schema } from "effect";
 import { existingAgentFolders, workspaceWritableRoots } from "../agent/workspace-sandbox";
@@ -64,6 +65,9 @@ export const resolveAgentExecutionContext = Effect.fn("resolveAgentExecutionCont
 
   const repository = databaseRepository(database, scope.repositoryId);
   if (!repository) return yield* repositoryContextFailure(sourceText("error.backend.repositoryGone"));
+  if (repository.hostId !== LOCAL_HOST_ID) {
+    return yield* repositoryContextFailure(sourceText("error.backend.repositoryRemoteHostUnavailable"));
+  }
 
   // Phase 3: a thread scoped to a specific worktree (migration 0073's `worktree_id`) resolves to
   // that worktree's path instead of the repository root. Checked and verified the same way as the
@@ -115,16 +119,20 @@ export const resolveAgentExecutionContext = Effect.fn("resolveAgentExecutionCont
 function databaseRepository(
   database: OpenBotDatabase,
   repositoryId: string,
-): { id: string; canonicalPath: string } | null {
+): { id: string; hostId: string; canonicalPath: string } | null {
   // Avoids a circular import with repository-store.ts's own error-throwing accessors: this
   // resolver needs a non-throwing lookup it can turn into an explicit Effect failure instead.
   const row = databaseRow(
     database.connection
-      .prepare("SELECT repository_id, canonical_path FROM projection_repositories WHERE repository_id = ?")
+      .prepare("SELECT repository_id, host_id, canonical_path FROM projection_repositories WHERE repository_id = ?")
       .get(repositoryId),
   );
   if (!row) return null;
-  return { id: requiredStringColumn(row, "repository_id"), canonicalPath: requiredStringColumn(row, "canonical_path") };
+  return {
+    id: requiredStringColumn(row, "repository_id"),
+    hostId: requiredStringColumn(row, "host_id"),
+    canonicalPath: requiredStringColumn(row, "canonical_path"),
+  };
 }
 
 function databaseWorktree(

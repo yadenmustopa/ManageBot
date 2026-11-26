@@ -515,4 +515,6 @@ export const messages = defineMessages("error.backend", {
   "error.backend.taskTitleInvalid": "Enter a valid task title.",
   "error.backend.taskDoneRequiresEvidence": "Record test evidence before marking a coding task as done.",
   "error.backend.taskDependencyCycle": "This dependency would create a cycle.",
+  "error.backend.repositoryRemoteHostUnavailable":
+    "This repository belongs to a remote execution host and cannot run on the local computer.",
 });
