@@ -35,7 +35,8 @@
   grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
   height: 100%;
   min-height: 0;
-  background: var(--openbot-paper);
+  background: var(--openbot-bg-canvas);
+  color: var(--openbot-text);
 }
 
 .project-sidebar {
@@ -140,6 +141,8 @@
   flex-direction: column;
   gap: var(--openbot-space-1, 4px);
   padding-inline-start: var(--openbot-space-5, 24px);
+  border-inline-start: 2px solid var(--openbot-border);
+  margin-inline-start: var(--openbot-space-3, 12px);
 }
 
 .project-worktree-item {
@@ -173,6 +176,7 @@
 .project-dialog-backdrop {
   display: grid;
   place-items: center;
+  background: var(--openbot-dialog-overlay);
 }
 
 .project-create-dialog,
@@ -181,6 +185,8 @@
   flex-direction: column;
   gap: var(--openbot-space-3, 12px);
   min-width: 360px;
+  background: var(--openbot-bg-surface-raised);
+  color: var(--openbot-text);
 }
 
 .project-dialog-header {
@@ -254,6 +260,8 @@
   width: min(760px, 90vw);
   max-height: 85vh;
   overflow-y: auto;
+  background: var(--openbot-bg-surface-raised);
+  color: var(--openbot-text);
 }
 
 .project-review-body {

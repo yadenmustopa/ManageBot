@@ -112,6 +112,14 @@ export function ProjectDashboard() {
                   {t("project.dashboard.repositories")}
                 </Text>
               </div>
+              <div class="project-dashboard-metric">
+                <Heading as="h2" size="md" class="project-dashboard-metric-value">
+                  {projects.state.tasks.length}
+                </Heading>
+                <Text as="span" variant="caption" tone="muted" class="project-dashboard-metric-label">
+                  {t("project.tasks.title")}
+                </Text>
+              </div>
             </div>
             <ItemGroup class="project-repository-list">
               <Show
@@ -190,6 +198,12 @@ export function ProjectDashboard() {
                                     </ItemDescription>
                                   </ItemContent>
                                   <ItemActions>
+                                    <Button
+                                      variant="ghost"
+                                      onClick={() => void projects.openReview(repository.id, worktree.id)}
+                                    >
+                                      {t("project.review.open")}
+                                    </Button>
                                     <IconButton
                                       label={t("project.worktree.newSession")}
                                       variant="ghost"
