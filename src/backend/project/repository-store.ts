@@ -43,7 +43,7 @@ function repositoryRow(row: ReturnType<typeof databaseRow>): OpenBotRepository {
 function healthOf(
   inspection: Pick<GitInspection, "isWorkingTree" | "currentBranch" | "dirty">,
 ): Exclude<RepositoryHealth, "missing"> {
-  if (!inspection.isWorkingTree) return "invalid";
+  if (!inspection.isWorkingTree) return "available";
   if (inspection.currentBranch === null) return "detached-head";
   if (inspection.dirty) return "dirty";
   return "available";
@@ -80,7 +80,6 @@ export class RepositoryStore {
   async importRepository(projectId: string, path: string, now = new Date().toISOString()): Promise<OpenBotRepository> {
     const canonicalPath = await resolveImportPath(path);
     const inspection = await inspectGitRepository(canonicalPath);
-    if (!inspection.isWorkingTree) throw new RepositoryError(sourceText("error.backend.repositoryNotGitWorkingTree"));
     const db = this.database.connection;
     return withTransaction(db, () => {
       const project = databaseRow(

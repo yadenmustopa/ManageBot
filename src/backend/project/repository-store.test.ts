@@ -56,14 +56,20 @@ describe("RepositoryStore", () => {
     expect(repositories.listRepositoriesForProject(project.id)).toHaveLength(1);
   });
 
-  it("refuses to import a folder that is not a Git working tree", async () => {
+  it("imports a non-Git folder as an available project folder", async () => {
     const { projects, repositories } = await createStores();
     const workspace = projects.ensureDefaultWorkspace();
     const project = projects.createProject({ workspaceId: workspace.id, name: "Mabar Desktop" });
     const notGit = await mkdtemp(join(tmpdir(), "openbot-not-git-"));
     roots.push(notGit);
 
-    await expect(repositories.importRepository(project.id, notGit)).rejects.toThrow(RepositoryError);
+    const repository = await repositories.importRepository(project.id, notGit);
+
+    expect(repository.name).toBe(notGit.split("/").pop());
+    expect(repository.currentBranch).toBeNull();
+    expect(repository.dirty).toBeNull();
+    expect(repository.health).toBe("available");
+    expect(repositories.listRepositoriesForProject(project.id)).toHaveLength(1);
   });
 
   it("refuses to import a path that does not exist", async () => {

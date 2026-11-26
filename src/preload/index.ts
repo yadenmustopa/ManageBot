@@ -347,6 +347,7 @@ import {
   decodeNullableStringResult,
   decodeProject,
   decodeProjectDashboardSummary,
+  decodeProjectFileMatchList,
   decodeProjectList,
   decodeProjectOrNull,
   decodeRepository,
@@ -1206,6 +1207,7 @@ const openbotApi: OpenBotDesktopApi = {
     detachRepository: decodeVoid,
     chooseFolder: decodeNullableStringResult,
     chooseFolders: decodeStringList,
+    searchFiles: decodeProjectFileMatchList,
   }),
   worktrees: bridgeGroup(IPC_ENDPOINTS.worktrees, {
     create: decodeWorktree,

@@ -1161,3 +1161,57 @@ export function parseCodingWorkflowRunList(value: unknown): CodingWorkflowRun[] 
   }
   return runs;
 }
+
+export interface ProjectFileMatch {
+  path: string;
+  relativePath: string;
+  rootName: string;
+  rootPath: string;
+}
+
+export interface SearchProjectFilesInput {
+  projectId?: string | null;
+  threadId?: string | null;
+  query: string;
+  limit?: number;
+}
+
+export function parseSearchProjectFilesInput(value: unknown): SearchProjectFilesInput | null {
+  if (!isDynamicRecord(value) || !isString(value.query)) return null;
+  const input: SearchProjectFilesInput = { query: value.query };
+  if (value.projectId !== undefined) {
+    if (!isNullableString(value.projectId)) return null;
+    input.projectId = value.projectId;
+  }
+  if (value.threadId !== undefined) {
+    if (!isNullableString(value.threadId)) return null;
+    input.threadId = value.threadId;
+  }
+  if (value.limit !== undefined) {
+    if (typeof value.limit !== "number" || !Number.isFinite(value.limit)) return null;
+    input.limit = value.limit;
+  }
+  return input;
+}
+
+export function parseProjectFileMatchList(value: unknown): ProjectFileMatch[] | null {
+  if (!Array.isArray(value)) return null;
+  const matches: ProjectFileMatch[] = [];
+  for (const item of value) {
+    if (
+      !isDynamicRecord(item) ||
+      !isString(item.path) ||
+      !isString(item.relativePath) ||
+      !isString(item.rootName) ||
+      !isString(item.rootPath)
+    )
+      return null;
+    matches.push({
+      path: item.path,
+      relativePath: item.relativePath,
+      rootName: item.rootName,
+      rootPath: item.rootPath,
+    });
+  }
+  return matches;
+}

@@ -197,6 +197,11 @@ const SPLIT_GLYPH: GlyphShape[] = [
   ["path", { d: "m15 9 6-6" }],
 ];
 
+const FILE_GLYPH: GlyphShape[] = [
+  ["path", { d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" }],
+  ["path", { d: "M14 2v4a2 2 0 0 0 2 2h4" }],
+];
+
 const GLYPH_ATTRIBUTES = {
   width: "24",
   height: "24",
@@ -274,6 +279,27 @@ export function createTabToken(tab: ComposerBrowserTab): HTMLSpanElement {
 export function createThreadToken(thread: ComposerThread): HTMLSpanElement {
   const token = document.createElement("span");
   updateReferenceToken(token, "thread", thread.id, referenceName(thread.title), true);
+  return token;
+}
+
+export function createProjectFileToken(file: { path: string; relativePath: string }): HTMLSpanElement {
+  const token = document.createElement("span");
+  const label = referenceName(file.relativePath);
+  token.className = `composer-mention-token ${referenceChipClasses.root}`;
+  token.dataset.kind = "file";
+  token.title = file.path;
+  token.contentEditable = "false";
+  token.dataset.filePath = file.path;
+  token.dataset.fileName = label;
+  token.setAttribute("aria-label", label);
+  const iconWrap = document.createElement("span");
+  iconWrap.className = referenceChipClasses.icon;
+  iconWrap.setAttribute("aria-hidden", "true");
+  iconWrap.append(createChipGlyph("file", FILE_GLYPH));
+  const nameElement = document.createElement("span");
+  nameElement.className = referenceChipClasses.name;
+  nameElement.textContent = label;
+  token.append(iconWrap, nameElement);
   return token;
 }
 
@@ -447,6 +473,11 @@ export function renderEditorValue(
     }
     if (semanticReference?.kind === "quote") {
       editor.append(createQuoteToken(semanticReference.id, semanticReference.name));
+      cursor = index + match[0].length;
+      continue;
+    }
+    if (semanticReference?.kind === "file") {
+      editor.append(createProjectFileToken({ path: semanticReference.id, relativePath: semanticReference.name }));
       cursor = index + match[0].length;
       continue;
     }

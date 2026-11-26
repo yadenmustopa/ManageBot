@@ -1,7 +1,7 @@
 import { type ChatTagKind, chatTagReferences } from "@openbot/contracts/chat-tag-references";
 import type { AttachmentSummary } from "@openbot/contracts/ipc";
 import type { AppTextKey } from "@openbot/i18n";
-import { AppWindow, Blocks, Button, Puzzle, Split, TextQuote } from "@openbot/ui";
+import { AppWindow, Blocks, Button, File, Puzzle, Split, TextQuote } from "@openbot/ui";
 import { ReferenceChip } from "@openbot/ui/reference-chip";
 import { usesTouchLayout } from "@openbot/ui/utils";
 import type { JSX } from "@solidjs/web";
@@ -45,7 +45,7 @@ const UNAVAILABLE_TAG_LABELS = {
   mcp: "chat.tag.unavailableMcp",
 } as const satisfies Record<UnavailableTagKind, AppTextKey>;
 
-type UnavailableTagKind = Exclude<ChatTagKind, "quote" | "tab" | "thread">;
+type UnavailableTagKind = Exclude<ChatTagKind, "quote" | "tab" | "thread" | "file">;
 
 export function RichMessageText(props: RichMessageTextProps) {
   const { t } = useText();
@@ -196,6 +196,19 @@ export function RichMessageText(props: RichMessageTextProps) {
                 class="message-reference-chip"
                 icon={reference.kind === "tab" ? <AppWindow /> : <Split />}
                 onClick={onOpenTag ? () => onOpenTag(reference.kind, reference.id) : undefined}
+              />
+            );
+          }
+          if (part.projectFilePath) {
+            const filePath = part.projectFilePath;
+            const onOpenWorkspaceFile = props.onOpenWorkspaceFile;
+            return (
+              <ReferenceChip
+                kind="quote"
+                name={part.text}
+                class="message-reference-chip"
+                icon={<File />}
+                onClick={onOpenWorkspaceFile ? () => onOpenWorkspaceFile(filePath, part.text) : undefined}
               />
             );
           }
@@ -368,6 +381,7 @@ interface RichMessagePart {
   mcpName?: string;
   quote?: { messageId: string; text: string };
   reference?: { kind: "tab" | "thread"; id: string };
+  projectFilePath?: string;
   unavailableKind?: UnavailableTagKind;
   citation?: MessageCitation;
   attachment?: AttachmentSummary;
@@ -438,6 +452,8 @@ function semanticTagParts(body: string, agents: ComposerAgent[], skills: Compose
       parts.push({ text: reference.name, mcpName: reference.name });
     } else if (reference.kind === "quote") {
       parts.push({ text: reference.name, quote: { messageId: reference.id, text: reference.name } });
+    } else if (reference.kind === "file") {
+      parts.push({ text: reference.name, projectFilePath: reference.id });
     } else if (reference.kind === "tab" || reference.kind === "thread") {
       parts.push({ text: reference.name, reference: { kind: reference.kind, id: reference.id } });
     } else {

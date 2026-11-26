@@ -54,6 +54,7 @@ import { reportErrorBanner, reportNotification } from "../../error-reports";
 import { deviceSendShortcut, sendShortcutAriaKey, sendShortcutHintKey } from "../../send-shortcut-preference";
 import { readableAgentError } from "../agents/agent-error-text";
 import { customProviderRestartMessage } from "../custom-providers/custom-provider-restart";
+import { projectPort } from "../projects/project-port";
 import { speechReading } from "../speech/speech-playback";
 import { stopSpokenReply } from "../speech/speech-replies";
 import { copyComposerSelection, readComposerCopy } from "./composer-clipboard";
@@ -815,6 +816,11 @@ export function ConversationComposer() {
               browserTabs={taggableBrowserTabs()}
               threads={taggableThreads()}
               onSearchThreads={props.onSearchThreads}
+              onSearchProjectFiles={
+                props.agent?.threadId
+                  ? (query) => projectPort().repositories.searchFiles({ threadId: props.agent?.threadId, query })
+                  : undefined
+              }
               onOpenTag={openTaggedReference}
               onValueChange={(text) => {
                 updateCurrentDraft({ text });

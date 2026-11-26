@@ -25,8 +25,8 @@ function repositoryContextFailure(message: string) {
 export interface AgentExecutionContext {
   readonly cwd: string;
   readonly writableRoots: readonly string[];
-  /** Non-null only when `cwd` came from a registered repository, not the agent's own workspace. */
   readonly repositoryId: string | null;
+  readonly projectFolders?: readonly string[];
 }
 
 type ScopableAgent = Pick<AgentSummary, "id" | "additionalFolders" | "workspacePath">;
@@ -94,6 +94,7 @@ export const resolveAgentExecutionContext = Effect.fn("resolveAgentExecutionCont
       cwd: worktree.canonicalPath,
       writableRoots: [worktree.canonicalPath, sharedRoot, ...existingAgentFolders(agent)],
       repositoryId: repository.id,
+      projectFolders: yield* projectFolderPaths(database, repository.id, worktree.canonicalPath),
     } satisfies AgentExecutionContext;
   }
 
@@ -105,16 +106,52 @@ export const resolveAgentExecutionContext = Effect.fn("resolveAgentExecutionCont
   );
   if (!isDirectory) return yield* repositoryContextFailure(sourceText("error.backend.repositoryPathMissing"));
 
-  const inspection = yield* Effect.promise(() => inspectGitRepository(repository.canonicalPath));
-  if (!inspection.isWorkingTree)
-    return yield* repositoryContextFailure(sourceText("error.backend.repositoryNotGitWorkingTree"));
-
   return {
     cwd: repository.canonicalPath,
     writableRoots: [repository.canonicalPath, sharedRoot, ...existingAgentFolders(agent)],
     repositoryId: repository.id,
+    projectFolders: yield* projectFolderPaths(database, repository.id, repository.canonicalPath),
   } satisfies AgentExecutionContext;
 });
+
+const projectFolderPaths = Effect.fn("projectFolderPaths")(function* (
+  database: OpenBotDatabase,
+  repositoryId: string,
+  primaryPath: string,
+) {
+  const siblingPaths = databaseProjectSiblingFolders(database, repositoryId, primaryPath);
+  const existingSiblings = yield* Effect.promise(() =>
+    Promise.all(
+      siblingPaths.map((folder) =>
+        stat(folder).then(
+          (info) => (info.isDirectory() ? folder : null),
+          () => null,
+        ),
+      ),
+    ),
+  );
+  return [...new Set([primaryPath, ...existingSiblings.filter((folder): folder is string => folder !== null)])];
+});
+
+function databaseProjectSiblingFolders(database: OpenBotDatabase, repositoryId: string, primaryPath: string): string[] {
+  const rows = database.connection
+    .prepare(
+      `SELECT DISTINCT r.canonical_path
+       FROM projection_repositories r
+       JOIN project_repositories pr1 ON pr1.repository_id = r.repository_id
+       JOIN project_repositories pr2 ON pr2.project_id = pr1.project_id
+       WHERE pr2.repository_id = ?
+         AND r.host_id = ?
+         AND r.canonical_path != ?`,
+    )
+    .all(repositoryId, LOCAL_HOST_ID, primaryPath);
+  const paths: string[] = [];
+  for (const row of rows) {
+    const parsed = databaseRow(row);
+    if (parsed) paths.push(requiredStringColumn(parsed, "canonical_path"));
+  }
+  return paths;
+}
 
 function databaseRepository(
   database: OpenBotDatabase,

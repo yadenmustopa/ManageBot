@@ -7,7 +7,8 @@ import {
 } from "@openbot/contracts/chat-tag-references";
 import { INPUT_LIMITS } from "@openbot/contracts/input-limits";
 import type { DraftAttachment } from "@openbot/contracts/ipc";
-import { AppWindow, Badge, Blocks, Listbox, Puzzle, Split, UsersRound } from "@openbot/ui";
+import type { ProjectFileMatch } from "@openbot/contracts/project";
+import { AppWindow, Badge, Blocks, File as FileIcon, Listbox, Puzzle, Split, UsersRound } from "@openbot/ui";
 import { usesTouchLayout } from "@openbot/ui/utils";
 import { Dynamic, type JSX, Portal } from "@solidjs/web";
 import {
@@ -72,6 +73,7 @@ import {
   createAttachmentToken,
   createMcpToken,
   createMentionToken,
+  createProjectFileToken,
   createQuoteToken,
   createSkillToken,
   createTabToken,
@@ -102,6 +104,7 @@ interface ComposerEditorProps {
   browserTabs?: ComposerBrowserTab[] | undefined;
   threads?: ComposerThread[] | undefined;
   onSearchThreads?: ((query: string) => Promise<ComposerThreadMessageMatch[]>) | undefined;
+  onSearchProjectFiles?: ((query: string) => Promise<ProjectFileMatch[]>) | undefined;
   onOpenTag?: ((kind: "tab" | "thread", id: string) => void) | undefined;
   value: string;
   placeholder: string;
@@ -294,6 +297,33 @@ export function ComposerEditor(props: ComposerEditorProps) {
   });
   const [threadMessageMatches, setThreadMessageMatches] = createSignal<ComposerThreadMessageMatch[]>([]);
   let threadSearchRequest = 0;
+  const [projectFileMatches, setProjectFileMatches] = createSignal<ProjectFileMatch[]>([]);
+  let projectFileSearchRequest = 0;
+  const projectFileSearchQuery = createMemo(() => {
+    const context = mention();
+    return context?.trigger === "@" ? context.query.trim() : null;
+  });
+  createEffect(
+    () => ({ query: projectFileSearchQuery(), search: props.onSearchProjectFiles }),
+    ({ query, search }) => {
+      const request = ++projectFileSearchRequest;
+      if (query === null || !search) {
+        setProjectFileMatches([]);
+        return;
+      }
+      const timer = setTimeout(() => {
+        search(query).then(
+          (matches) => {
+            if (request === projectFileSearchRequest) setProjectFileMatches(matches);
+          },
+          () => {
+            if (request === projectFileSearchRequest) setProjectFileMatches([]);
+          },
+        );
+      }, 100);
+      return () => clearTimeout(timer);
+    },
+  );
   const hasListedThreads = createMemo(() => threads().length > 0);
   createEffect(
     () => ({ query: threadSearchQuery(), search: props.onSearchThreads, listed: hasListedThreads() }),
@@ -359,7 +389,10 @@ export function ComposerEditor(props: ComposerEditorProps) {
       {
         id: "files",
         title: "composer.picker.section.files",
-        options: matchingAttachments().map((attachment) => ({ type: "attachment" as const, attachment })),
+        options: [
+          ...matchingAttachments().map((attachment) => ({ type: "attachment" as const, attachment })),
+          ...projectFileMatches().map((file) => ({ type: "projectFile" as const, file })),
+        ],
       },
       {
         id: "tabs",
@@ -769,7 +802,9 @@ export function ComposerEditor(props: ComposerEditorProps) {
                 ? createTabToken(option.tab)
                 : option.type === "thread"
                   ? createThreadToken(option.thread)
-                  : createAttachmentToken(option.attachment, attachmentTokenActions);
+                  : option.type === "projectFile"
+                    ? createProjectFileToken(option.file)
+                    : createAttachmentToken(option.attachment, attachmentTokenActions);
     const trailingSpace = document.createTextNode(" ");
     range.insertNode(trailingSpace);
     range.insertNode(token);
@@ -1231,7 +1266,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
                       class={[
                         "mention-picker-option",
                         {
-                          "mention-picker-file-option": option.type === "attachment",
+                          "mention-picker-file-option": option.type === "attachment" || option.type === "projectFile",
                           "mention-picker-option-active": activeOption() === optionIndex(),
                         },
                       ]}
@@ -1265,6 +1300,10 @@ export function ComposerEditor(props: ComposerEditorProps) {
                       ) : option.type === "thread" ? (
                         <span class="mention-picker-skill-icon" aria-hidden="true">
                           <Split />
+                        </span>
+                      ) : option.type === "projectFile" ? (
+                        <span class="mention-picker-skill-icon" aria-hidden="true">
+                          <FileIcon />
                         </span>
                       ) : (
                         <AttachmentReferenceVisual name={option.attachment.name} />

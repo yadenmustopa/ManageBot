@@ -225,6 +225,7 @@ export function createMockProjectWorkspace(): {
     },
     chooseFolder: async () => "/home/sam/dev/mabar-backend",
     chooseFolders: async () => ["/home/sam/dev/mabar-desktop", "/home/sam/dev/mabar-backend"],
+    searchFiles: async () => [],
   };
 
   const worktrees = new Map<string, OpenBotWorktree>();

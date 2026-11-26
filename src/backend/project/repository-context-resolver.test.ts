@@ -182,4 +182,30 @@ describe("resolveAgentExecutionContext", () => {
     expect(context.cwd).toBe(repository.canonicalPath);
     expect(context.repositoryId).toBe(repository.id);
   });
+
+  it("resolves non-Git project folders and lists sibling project folders in projectFolders without widening writableRoots", async () => {
+    const database = await createDatabase();
+    const agent = testAgent("agent-multi", "thread-multi", "/tmp/openbot-agent-multi-workspace");
+    database.replaceAgents("agents-import", [agent], "agents.imported");
+
+    const projects = new ProjectStore(database);
+    const repositories = new RepositoryStore(database);
+    const scopes = new ThreadRepositoryScopeStore(database);
+    const workspace = projects.ensureDefaultWorkspace();
+    const project = projects.createProject({ workspaceId: workspace.id, name: "Multi folder test" });
+    const gitRepo = await repositories.importRepository(project.id, await createRealGitRepo("multi-git"));
+    const infoFolder = await mkdtemp(join(tmpdir(), "openbot-info-folder-"));
+    roots.push(infoFolder);
+    const nonGitRepo = await repositories.importRepository(project.id, infoFolder);
+    scopes.setScope("thread-multi", project.id, nonGitRepo.id);
+
+    const context = await runCauseEffect(resolveAgentExecutionContext(database, agent, "thread-multi", "/tmp/shared"));
+
+    expect(context.cwd).toBe(nonGitRepo.canonicalPath);
+    expect(context.repositoryId).toBe(nonGitRepo.id);
+    expect(context.writableRoots).toContain(nonGitRepo.canonicalPath);
+    expect(context.writableRoots).not.toContain(gitRepo.canonicalPath);
+    expect(context.projectFolders).toContain(nonGitRepo.canonicalPath);
+    expect(context.projectFolders).toContain(gitRepo.canonicalPath);
+  });
 });

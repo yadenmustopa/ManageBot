@@ -105,6 +105,7 @@ function fakePort(): { port: ProjectPort; dispose: () => void } {
       },
       chooseFolder: async () => "/home/me/dev/mabar-desktop",
       chooseFolders: async () => ["/home/me/dev/mabar-desktop", "/home/me/dev/mabar-backend"],
+      searchFiles: async () => [],
     },
     worktrees: {
       create: async ({ repositoryId, branchName, baseRef }) => ({

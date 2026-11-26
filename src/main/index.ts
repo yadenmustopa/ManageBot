@@ -945,7 +945,12 @@ function registerIpcHandlers({
     ...licenseIpcHandlers({ license }),
     ...creditsIpcHandlers({ credits }),
     ...projectIpcHandlers({ projects, repositories }),
-    ...repositoryIpcHandlers({ repositories, getMainWindow: getDialogParent, translate: language.translate }),
+    ...repositoryIpcHandlers({
+      repositories,
+      threadRepositoryScopes,
+      getMainWindow: getDialogParent,
+      translate: language.translate,
+    }),
     ...worktreeIpcHandlers({ worktrees }),
     ...developmentTaskIpcHandlers({ developmentTasks }),
     ...gitReviewIpcHandlers({ repositories, worktrees }),

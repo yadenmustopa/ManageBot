@@ -9,6 +9,7 @@ import {
   type OpenBotWorkspace,
   type OpenBotWorktree,
   type ProjectDashboardSummary,
+  type ProjectFileMatch,
   parseCodingWorkflowRunList,
   parseCodingWorkflowRunResult,
   parseDevelopmentTaskList,
@@ -17,6 +18,7 @@ import {
   parseGitHubRepositoryOverview,
   parseGitReviewSnapshot,
   parseProjectDashboardSummary,
+  parseProjectFileMatchList,
   parseProjectList,
   parseProjectOrNull,
   parseRepositoryList,
@@ -61,6 +63,9 @@ export const decodeRepositoryList = (value: unknown): OpenBotRepository[] =>
 
 export const decodeProjectDashboardSummary = (value: unknown): ProjectDashboardSummary =>
   required(parseProjectDashboardSummary(value), "project dashboard summary response");
+
+export const decodeProjectFileMatchList = (value: unknown): ProjectFileMatch[] =>
+  required(parseProjectFileMatchList(value), "project file match list response");
 
 export const decodeThreadRepositoryScope = (value: unknown): ThreadRepositoryScope =>
   required(parseThreadRepositoryScope(value), "thread repository scope response");

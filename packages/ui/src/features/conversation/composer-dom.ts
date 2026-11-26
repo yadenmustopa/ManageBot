@@ -79,6 +79,9 @@ function serializeNode(node: Node): string {
   const threadId = node.dataset.threadId;
   const threadName = node.dataset.threadName;
   if (threadId && threadName) return serializeChatTagReference("thread", threadName, threadId);
+  const filePath = node.dataset.filePath;
+  const fileName = node.dataset.fileName;
+  if (filePath && fileName) return serializeChatTagReference("file", fileName, filePath);
   if (node.tagName === "BR") return "\n";
   const content = Array.from(node.childNodes).map(serializeNode).join("");
   return node.tagName === "DIV" || node.tagName === "P" ? `${content}\n` : content;

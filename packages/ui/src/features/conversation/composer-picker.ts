@@ -1,4 +1,5 @@
 import type { DraftAttachment } from "@openbot/contracts/ipc";
+import type { ProjectFileMatch } from "@openbot/contracts/project";
 import type { AppTextKey } from "@openbot/i18n";
 import { Bot, File, Folder, Plug, type Puzzle, ShieldCheck, Store, UsersRound } from "@openbot/ui";
 import type { ComposerAgent, ComposerBrowserTab, ComposerMcpServer, ComposerSkill, ComposerThread } from "../../data";
@@ -16,6 +17,7 @@ export type PickerOption =
   | { type: "skill"; skill: ComposerSkill; showSlug: boolean }
   | { type: "mcp"; server: ComposerMcpServer }
   | { type: "attachment"; attachment: DraftAttachment }
+  | { type: "projectFile"; file: ProjectFileMatch }
   | { type: "tab"; tab: ComposerBrowserTab }
   | { type: "thread"; thread: ComposerThread; snippet?: string | undefined };
 
@@ -31,6 +33,7 @@ export function pickerOptionKey(option: PickerOption): string {
   if (option.type === "skill") return `skill:${option.skill.skillId}`;
   if (option.type === "tab") return `tab:${option.tab.id}`;
   if (option.type === "thread") return `thread:${option.thread.id}`;
+  if (option.type === "projectFile") return `project-file:${option.file.path}`;
   return option.type === "mcp" ? `mcp:${option.server.id}` : `attachment:${option.attachment.id}`;
 }
 
@@ -43,6 +46,7 @@ export function pickerOptionText(option: PickerOption, t: TextValue["t"]): strin
   }
   if (option.type === "tab") return t("composer.picker.option.tab", { name: tabTitle(option.tab) });
   if (option.type === "thread") return t("composer.picker.option.thread", { name: option.thread.title });
+  if (option.type === "projectFile") return t("composer.picker.option.file", { name: option.file.relativePath });
   return option.type === "mcp"
     ? t("composer.picker.option.mcp", { name: option.server.name })
     : t("composer.picker.option.file", { name: option.attachment.name });
@@ -54,6 +58,7 @@ export function pickerOptionName(option: PickerOption, t: TextValue["t"]): strin
   if (option.type === "skill") return option.skill.name;
   if (option.type === "tab") return tabTitle(option.tab);
   if (option.type === "thread") return option.thread.title;
+  if (option.type === "projectFile") return option.file.relativePath;
   return option.type === "mcp" ? option.server.name : option.attachment.name;
 }
 
@@ -64,6 +69,7 @@ export function pickerOptionDescription(
 ): string | undefined {
   if (option.type === "everyone") return t("composer.picker.everyoneDescription");
   if (option.type === "attachment") return format.fileSize(option.attachment.size);
+  if (option.type === "projectFile") return option.file.rootName || undefined;
   if (option.type === "skill") return skillDescription(option.skill);
   if (option.type === "mcp") return mcpServerDescription(option.server);
   if (option.type === "tab") return browserDisplayUrl(option.tab.url) || undefined;
@@ -121,7 +127,8 @@ export function pickerOptionBadge(
   if (option.type === "thread") return { label: t(THREAD_STATE_LABELS[threadStateLabel(option.thread)]) };
   if (option.type === "agent") return { label: t("composer.picker.badge.agent"), icon: Bot };
   if (option.type === "everyone") return { label: t("composer.picker.badge.channel"), icon: UsersRound };
-  if (option.type === "attachment") return { label: t("composer.picker.badge.file"), icon: File };
+  if (option.type === "attachment" || option.type === "projectFile")
+    return { label: t("composer.picker.badge.file"), icon: File };
   if (option.type === "mcp") return { label: MCP_BADGE, icon: Plug };
   switch (option.skill.origin ?? "marketplace") {
     case "local":

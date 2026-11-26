@@ -1,4 +1,4 @@
-export type ChatTagKind = "agent" | "skill" | "mcp" | "quote" | "tab" | "thread";
+export type ChatTagKind = "agent" | "skill" | "mcp" | "quote" | "tab" | "thread" | "file";
 
 export interface ChatTagReference {
   kind: ChatTagKind;
@@ -8,7 +8,7 @@ export interface ChatTagReference {
   end: number;
 }
 
-const CHAT_TAG_REFERENCE_PATTERN = /@\[([^\]\r\n]+)\]\((agent|skill|mcp|quote|tab|thread)(\+uri)?:([^)\r\n]+)\)/gu;
+const CHAT_TAG_REFERENCE_PATTERN = /@\[([^\]\r\n]+)\]\((agent|skill|mcp|quote|tab|thread|file)(\+uri)?:([^)\r\n]+)\)/gu;
 
 const UNSAFE_QUOTE_NAME = /[[\]\\`<\r\n]/u;
 
@@ -92,7 +92,15 @@ export function leadingAddress(value: string): { mentions: ChatTagReference[]; e
 }
 
 function chatTagKind(value: string | undefined): ChatTagKind {
-  if (value === "skill" || value === "mcp" || value === "quote" || value === "tab" || value === "thread") return value;
+  if (
+    value === "skill" ||
+    value === "mcp" ||
+    value === "quote" ||
+    value === "tab" ||
+    value === "thread" ||
+    value === "file"
+  )
+    return value;
   return "agent";
 }
 
@@ -123,6 +131,7 @@ export function expandChatTagReferences(
         text.quoteEnd = offset + marker.length;
         return expanded;
       }
+      if (kind === "file") return resolveName?.(reference) ?? id;
       if (kind === "tab" || kind === "thread") return resolveName?.(reference) ?? name;
       const resolvedName = resolveName?.(reference) ?? name;
       return expandedChatTag(kind, resolvedName);

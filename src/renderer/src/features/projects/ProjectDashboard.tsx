@@ -38,6 +38,14 @@ function healthLabel(t: ReturnType<typeof useText>["t"], health: RepositoryHealt
   }
 }
 
+function isGitRepository(repository: {
+  dirty: boolean | null;
+  currentBranch: string | null;
+  remoteUrl: string | null;
+}): boolean {
+  return repository.dirty !== null || repository.currentBranch !== null || repository.remoteUrl !== null;
+}
+
 function worktreeStatusLabel(t: ReturnType<typeof useText>["t"], status: WorktreeLifecycleStatus): string {
   switch (status) {
     case "active":
@@ -149,16 +157,18 @@ export function ProjectDashboard() {
                             </ItemDescription>
                           </ItemContent>
                           <ItemActions>
-                            <Button variant="ghost" onClick={() => void projects.openReview(repository.id)}>
-                              {t("project.review.open")}
-                            </Button>
-                            <IconButton
-                              label={t("project.worktree.new")}
-                              variant="ghost"
-                              onClick={() => projects.openCreateWorktree(repository.id)}
-                            >
-                              <Plus />
-                            </IconButton>
+                            <Show when={isGitRepository(repository)}>
+                              <Button variant="ghost" onClick={() => void projects.openReview(repository.id)}>
+                                {t("project.review.open")}
+                              </Button>
+                              <IconButton
+                                label={t("project.worktree.new")}
+                                variant="ghost"
+                                onClick={() => projects.openCreateWorktree(repository.id)}
+                              >
+                                <Plus />
+                              </IconButton>
+                            </Show>
                             <IconButton
                               label={t("project.repository.newSession")}
                               variant="ghost"
