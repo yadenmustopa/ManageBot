@@ -1,4 +1,7 @@
 import {
+  type GitDiffResult,
+  type GitHubRepositoryOverview,
+  type GitReviewSnapshot,
   type OpenBotDevelopmentTask,
   type OpenBotProject,
   type OpenBotRepository,
@@ -7,12 +10,16 @@ import {
   type ProjectDashboardSummary,
   parseDevelopmentTaskList,
   parseDevelopmentTaskOrNull,
+  parseGitDiffResult,
+  parseGitHubRepositoryOverview,
+  parseGitReviewSnapshot,
   parseProjectDashboardSummary,
   parseProjectList,
   parseProjectOrNull,
   parseRepositoryList,
   parseRepositoryOrNull,
   parseStringList,
+  parseStringResult,
   parseThreadRepositoryScope,
   parseWorkspaceList,
   parseWorkspaceOrNull,
@@ -74,3 +81,14 @@ export const decodeDevelopmentTaskList = (value: unknown): OpenBotDevelopmentTas
   required(parseDevelopmentTaskList(value), "development task list response");
 
 export const decodeStringList = (value: unknown): string[] => required(parseStringList(value), "string list response");
+
+export const decodeGitReviewSnapshot = (value: unknown): GitReviewSnapshot =>
+  required(parseGitReviewSnapshot(value), "git review snapshot response");
+
+export const decodeGitDiffResult = (value: unknown): GitDiffResult =>
+  required(parseGitDiffResult(value), "git diff response");
+
+export const decodeGitHubRepositoryOverview = (value: unknown): GitHubRepositoryOverview =>
+  required(parseGitHubRepositoryOverview(value), "github overview response");
+
+export const decodeStringResult = (value: unknown): string => required(parseStringResult(value), "string response");

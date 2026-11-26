@@ -97,6 +97,7 @@ import { registerIpcGroups } from "./ipc/define-ipc-group";
 import { developmentTaskIpcHandlers } from "./ipc/development-task-handlers";
 import { dynamicIslandIpcHandlers } from "./ipc/dynamic-island-handlers";
 import { eventsIpcHandlers } from "./ipc/events-handlers";
+import { gitReviewIpcHandlers } from "./ipc/git-review-handlers";
 import { githubConnectorIpcHandlers } from "./ipc/github-connector-handlers";
 import { hostAdminIpcHandlers } from "./ipc/host-admin-handlers";
 import { hostedServerIpcHandlers } from "./ipc/hosted-server-handlers";
@@ -945,6 +946,7 @@ function registerIpcHandlers({
     ...repositoryIpcHandlers({ repositories }),
     ...worktreeIpcHandlers({ worktrees }),
     ...developmentTaskIpcHandlers({ developmentTasks }),
+    ...gitReviewIpcHandlers({ repositories, worktrees }),
     ...threadRepositoryScopeIpcHandlers({ threadRepositoryScopes }),
     ...routineFeedIpcHandlers({ routineFeed }),
     ...eventsIpcHandlers({ events, remoteServers }),

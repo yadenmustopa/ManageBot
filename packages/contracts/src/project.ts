@@ -777,3 +777,247 @@ export function parseDevelopmentTaskDependencyInput(value: unknown): Development
   if (!isDynamicRecord(value) || !isString(value.taskId) || !isString(value.dependsOnTaskId)) return null;
   return { taskId: value.taskId, dependsOnTaskId: value.dependsOnTaskId };
 }
+
+export const GIT_FILE_STATUS_VALUES = ["modified", "added", "deleted", "renamed", "untracked", "conflicted"] as const;
+export type GitFileStatus = (typeof GIT_FILE_STATUS_VALUES)[number];
+
+export interface GitChangedFile {
+  path: string;
+  status: GitFileStatus;
+  staged: boolean;
+}
+
+export interface GitCommitEntry {
+  hash: string;
+  shortHash: string;
+  subject: string;
+  author: string;
+  authoredAt: string;
+}
+
+export interface GitReviewSnapshot {
+  targetPath: string;
+  currentBranch: string | null;
+  files: GitChangedFile[];
+  commits: GitCommitEntry[];
+  hasConflicts: boolean;
+}
+
+export interface GitDiffResult {
+  diff: string;
+  truncated: boolean;
+  binary: boolean;
+}
+
+export interface GitReviewTargetInput {
+  repositoryId: string;
+  worktreeId?: string | null;
+}
+
+export interface GitDiffInput {
+  repositoryId: string;
+  worktreeId?: string | null;
+  filePath?: string | null;
+  staged?: boolean;
+}
+
+export interface GitHubIssueSummary {
+  number: number;
+  title: string;
+  state: string;
+  url: string;
+  author: string | null;
+  updatedAt: string;
+}
+
+export interface GitHubPullRequestSummary {
+  number: number;
+  title: string;
+  state: string;
+  url: string;
+  headBranch: string;
+  baseBranch: string;
+  isDraft: boolean;
+  reviewDecision: string | null;
+  updatedAt: string;
+}
+
+export interface GitHubRepositoryOverview {
+  owner: string;
+  repo: string;
+  issues: GitHubIssueSummary[];
+  pullRequests: GitHubPullRequestSummary[];
+  error: string | null;
+}
+
+export interface CreatePullRequestInput {
+  repositoryId: string;
+  worktreeId?: string | null;
+  title: string;
+  body?: string;
+  baseBranch?: string | null;
+  draft?: boolean;
+}
+
+export function parseGitReviewTargetInput(value: unknown): GitReviewTargetInput | null {
+  if (!isDynamicRecord(value) || !isString(value.repositoryId)) return null;
+  const input: GitReviewTargetInput = { repositoryId: value.repositoryId };
+  if (value.worktreeId !== undefined) {
+    if (!isNullableString(value.worktreeId)) return null;
+    input.worktreeId = value.worktreeId;
+  }
+  return input;
+}
+
+export function parseGitDiffInput(value: unknown): GitDiffInput | null {
+  if (!isDynamicRecord(value) || !isString(value.repositoryId)) return null;
+  const input: GitDiffInput = { repositoryId: value.repositoryId };
+  if (value.worktreeId !== undefined) {
+    if (!isNullableString(value.worktreeId)) return null;
+    input.worktreeId = value.worktreeId;
+  }
+  if (value.filePath !== undefined) {
+    if (!isNullableString(value.filePath)) return null;
+    input.filePath = value.filePath;
+  }
+  if (value.staged !== undefined) {
+    if (!isBoolean(value.staged)) return null;
+    input.staged = value.staged;
+  }
+  return input;
+}
+
+export function parseCreatePullRequestInput(value: unknown): CreatePullRequestInput | null {
+  if (!isDynamicRecord(value) || !isString(value.repositoryId) || !isNonEmptyName(value.title)) return null;
+  const input: CreatePullRequestInput = { repositoryId: value.repositoryId, title: value.title };
+  if (value.worktreeId !== undefined) {
+    if (!isNullableString(value.worktreeId)) return null;
+    input.worktreeId = value.worktreeId;
+  }
+  if (value.body !== undefined) {
+    if (!isString(value.body) || value.body.length > MAX_DESCRIPTION_LENGTH) return null;
+    input.body = value.body;
+  }
+  if (value.baseBranch !== undefined) {
+    if (!isNullableString(value.baseBranch)) return null;
+    input.baseBranch = value.baseBranch;
+  }
+  if (value.draft !== undefined) {
+    if (!isBoolean(value.draft)) return null;
+    input.draft = value.draft;
+  }
+  return input;
+}
+
+export function parseGitReviewSnapshot(value: unknown): GitReviewSnapshot | null {
+  if (!isDynamicRecord(value) || !isString(value.targetPath) || !isNullableString(value.currentBranch)) return null;
+  if (!Array.isArray(value.files) || !Array.isArray(value.commits) || !isBoolean(value.hasConflicts)) return null;
+  const files: GitChangedFile[] = [];
+  for (const item of value.files) {
+    if (
+      !isDynamicRecord(item) ||
+      !isString(item.path) ||
+      !isOneOf(GIT_FILE_STATUS_VALUES, item.status) ||
+      !isBoolean(item.staged)
+    )
+      return null;
+    files.push({ path: item.path, status: item.status, staged: item.staged });
+  }
+  const commits: GitCommitEntry[] = [];
+  for (const item of value.commits) {
+    if (
+      !isDynamicRecord(item) ||
+      !isString(item.hash) ||
+      !isString(item.shortHash) ||
+      !isString(item.subject) ||
+      !isString(item.author) ||
+      !isString(item.authoredAt)
+    )
+      return null;
+    commits.push({
+      hash: item.hash,
+      shortHash: item.shortHash,
+      subject: item.subject,
+      author: item.author,
+      authoredAt: item.authoredAt,
+    });
+  }
+  return {
+    targetPath: value.targetPath,
+    currentBranch: value.currentBranch,
+    files,
+    commits,
+    hasConflicts: value.hasConflicts,
+  };
+}
+
+export function parseGitDiffResult(value: unknown): GitDiffResult | null {
+  if (!isDynamicRecord(value) || !isString(value.diff) || !isBoolean(value.truncated) || !isBoolean(value.binary))
+    return null;
+  return { diff: value.diff, truncated: value.truncated, binary: value.binary };
+}
+
+export function parseGitHubRepositoryOverview(value: unknown): GitHubRepositoryOverview | null {
+  if (
+    !isDynamicRecord(value) ||
+    !isString(value.owner) ||
+    !isString(value.repo) ||
+    !Array.isArray(value.issues) ||
+    !Array.isArray(value.pullRequests) ||
+    !isNullableString(value.error)
+  )
+    return null;
+  const issues: GitHubIssueSummary[] = [];
+  for (const item of value.issues) {
+    if (
+      !isDynamicRecord(item) ||
+      typeof item.number !== "number" ||
+      !isString(item.title) ||
+      !isString(item.state) ||
+      !isString(item.url) ||
+      !isNullableString(item.author) ||
+      !isString(item.updatedAt)
+    )
+      return null;
+    issues.push({
+      number: item.number,
+      title: item.title,
+      state: item.state,
+      url: item.url,
+      author: item.author,
+      updatedAt: item.updatedAt,
+    });
+  }
+  const pullRequests: GitHubPullRequestSummary[] = [];
+  for (const item of value.pullRequests) {
+    if (
+      !isDynamicRecord(item) ||
+      typeof item.number !== "number" ||
+      !isString(item.title) ||
+      !isString(item.state) ||
+      !isString(item.url) ||
+      !isString(item.headBranch) ||
+      !isString(item.baseBranch) ||
+      !isBoolean(item.isDraft) ||
+      !isNullableString(item.reviewDecision) ||
+      !isString(item.updatedAt)
+    )
+      return null;
+    pullRequests.push({
+      number: item.number,
+      title: item.title,
+      state: item.state,
+      url: item.url,
+      headBranch: item.headBranch,
+      baseBranch: item.baseBranch,
+      isDraft: item.isDraft,
+      reviewDecision: item.reviewDecision,
+      updatedAt: item.updatedAt,
+    });
+  }
+  return { owner: value.owner, repo: value.repo, issues, pullRequests, error: value.error };
+}
+
+export function parseStringResult(value: unknown): string | null {
+  return isString(value) ? value : null;
+}

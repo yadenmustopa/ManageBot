@@ -1,5 +1,6 @@
 import type {
   DevelopmentTasksDesktopApi,
+  GitReviewDesktopApi,
   ProjectsDesktopApi,
   RepositoriesDesktopApi,
   ThreadRepositoryScopeDesktopApi,
@@ -107,6 +108,7 @@ export function createMockProjectWorkspace(): {
   repositories: RepositoriesDesktopApi;
   worktrees: WorktreesDesktopApi;
   developmentTasks: DevelopmentTasksDesktopApi;
+  gitReview: GitReviewDesktopApi;
   threadRepositoryScope: ThreadRepositoryScopeDesktopApi;
 } {
   const workspace = seedWorkspace();
@@ -363,11 +365,28 @@ export function createMockProjectWorkspace(): {
     listDependencies: async ({ taskId }: DevelopmentTaskIdInput) => [...(devTaskDeps.get(taskId) ?? [])],
   };
 
+  const gitReviewApi: GitReviewDesktopApi = {
+    getSnapshot: async ({ repositoryId }) => {
+      const repository = repositories.get(repositoryId);
+      return {
+        targetPath: repository?.canonicalPath ?? "",
+        currentBranch: repository?.currentBranch ?? "main",
+        files: [],
+        commits: [],
+        hasConflicts: false,
+      };
+    },
+    getDiff: async () => ({ diff: "", truncated: false, binary: false }),
+    getGitHubOverview: async () => ({ owner: "", repo: "", issues: [], pullRequests: [], error: null }),
+    createPullRequest: async () => "https://github.com/example/repo/pull/1",
+  };
+
   return {
     projects: projectsApi,
     repositories: repositoriesApi,
     worktrees: worktreesApi,
     developmentTasks: developmentTasksApi,
+    gitReview: gitReviewApi,
     threadRepositoryScope: threadRepositoryScopeApi,
   };
 }
