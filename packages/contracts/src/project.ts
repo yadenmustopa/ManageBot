@@ -1021,3 +1021,143 @@ export function parseGitHubRepositoryOverview(value: unknown): GitHubRepositoryO
 export function parseStringResult(value: unknown): string | null {
   return isString(value) ? value : null;
 }
+
+export const CODING_WORKFLOW_STEP_VALUES = ["plan", "worktree", "implement", "test", "review", "approval"] as const;
+export type CodingWorkflowStep = (typeof CODING_WORKFLOW_STEP_VALUES)[number];
+
+export const CODING_WORKFLOW_STATUS_VALUES = [
+  "running",
+  "awaiting-approval",
+  "completed",
+  "failed",
+  "cancelled",
+] as const;
+export type CodingWorkflowStatus = (typeof CODING_WORKFLOW_STATUS_VALUES)[number];
+
+export interface CodingWorkflowRun {
+  id: string;
+  taskId: string;
+  projectId: string;
+  repositoryId: string;
+  worktreeId: string | null;
+  currentStep: CodingWorkflowStep;
+  status: CodingWorkflowStatus;
+  reviewIteration: number;
+  maxReviewIterations: number;
+  logs: string[];
+  failureReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function createCodingWorkflowRunId(): string {
+  return `wf-run-${crypto.randomUUID()}`;
+}
+
+export interface StartCodingWorkflowInput {
+  taskId: string;
+  maxReviewIterations?: number;
+}
+
+export interface AdvanceCodingWorkflowInput {
+  runId: string;
+  approved?: boolean;
+  testsPassed?: boolean;
+  reviewPassed?: boolean;
+  note?: string;
+}
+
+export interface CodingWorkflowRunIdInput {
+  runId: string;
+}
+
+export function parseStartCodingWorkflowInput(value: unknown): StartCodingWorkflowInput | null {
+  if (!isDynamicRecord(value) || !isString(value.taskId)) return null;
+  const input: StartCodingWorkflowInput = { taskId: value.taskId };
+  if (value.maxReviewIterations !== undefined) {
+    if (typeof value.maxReviewIterations !== "number" || value.maxReviewIterations < 1) return null;
+    input.maxReviewIterations = value.maxReviewIterations;
+  }
+  return input;
+}
+
+export function parseAdvanceCodingWorkflowInput(value: unknown): AdvanceCodingWorkflowInput | null {
+  if (!isDynamicRecord(value) || !isString(value.runId)) return null;
+  const input: AdvanceCodingWorkflowInput = { runId: value.runId };
+  if (value.approved !== undefined) {
+    if (!isBoolean(value.approved)) return null;
+    input.approved = value.approved;
+  }
+  if (value.testsPassed !== undefined) {
+    if (!isBoolean(value.testsPassed)) return null;
+    input.testsPassed = value.testsPassed;
+  }
+  if (value.reviewPassed !== undefined) {
+    if (!isBoolean(value.reviewPassed)) return null;
+    input.reviewPassed = value.reviewPassed;
+  }
+  if (value.note !== undefined) {
+    if (!isString(value.note)) return null;
+    input.note = value.note;
+  }
+  return input;
+}
+
+export function parseCodingWorkflowRunIdInput(value: unknown): CodingWorkflowRunIdInput | null {
+  return isDynamicRecord(value) && isString(value.runId) ? { runId: value.runId } : null;
+}
+
+function parseCodingWorkflowRun(row: DynamicRecord): CodingWorkflowRun | null {
+  if (
+    !isString(row.id) ||
+    !isString(row.taskId) ||
+    !isString(row.projectId) ||
+    !isString(row.repositoryId) ||
+    !isNullableString(row.worktreeId) ||
+    !isOneOf(CODING_WORKFLOW_STEP_VALUES, row.currentStep) ||
+    !isOneOf(CODING_WORKFLOW_STATUS_VALUES, row.status) ||
+    typeof row.reviewIteration !== "number" ||
+    typeof row.maxReviewIterations !== "number" ||
+    !Array.isArray(row.logs) ||
+    !isNullableString(row.failureReason) ||
+    !isString(row.createdAt) ||
+    !isString(row.updatedAt)
+  )
+    return null;
+  const logs: string[] = [];
+  for (const entry of row.logs) {
+    if (!isString(entry)) return null;
+    logs.push(entry);
+  }
+  return {
+    id: row.id,
+    taskId: row.taskId,
+    projectId: row.projectId,
+    repositoryId: row.repositoryId,
+    worktreeId: row.worktreeId,
+    currentStep: row.currentStep,
+    status: row.status,
+    reviewIteration: row.reviewIteration,
+    maxReviewIterations: row.maxReviewIterations,
+    logs,
+    failureReason: row.failureReason,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+export function parseCodingWorkflowRunResult(value: unknown): CodingWorkflowRun | null {
+  return isDynamicRecord(value) ? parseCodingWorkflowRun(value) : null;
+}
+
+export function parseCodingWorkflowRunList(value: unknown): CodingWorkflowRun[] | null {
+  if (!Array.isArray(value)) return null;
+  const runs: CodingWorkflowRun[] = [];
+  for (const item of value) {
+    if (!isDynamicRecord(item)) return null;
+    const run = parseCodingWorkflowRun(item);
+    if (!run) return null;
+    runs.push(run);
+  }
+  return runs;
+}

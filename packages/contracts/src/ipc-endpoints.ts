@@ -695,6 +695,9 @@ import type { MarketplaceListingLink } from "./marketplace-links";
 import type { AccountSession, MobileConnectedDevice, MobileConnectLink, MobileConnectTicket } from "./mobile-connect";
 import type { AcceptedOwnerTransfer, OwnerTransfer } from "./owner-transfer";
 import type {
+  AdvanceCodingWorkflowInput,
+  CodingWorkflowRun,
+  CodingWorkflowRunIdInput,
   CreateDevelopmentTaskInput,
   CreateProjectInput,
   CreatePullRequestInput,
@@ -718,6 +721,7 @@ import type {
   RemoveWorktreeInput,
   RepositoryIdInput,
   SetThreadRepositoryScopeInput,
+  StartCodingWorkflowInput,
   ThreadIdInput,
   ThreadRepositoryScope,
   UpdateDevelopmentTaskInput,
@@ -1489,6 +1493,12 @@ export const IPC_ENDPOINTS = {
     getGitHubOverview: request<RepositoryIdInput, GitHubRepositoryOverview>()("git-review:github-overview"),
     createPullRequest: request<CreatePullRequestInput, string>()("git-review:create-pr"),
   },
+  codingWorkflows: {
+    start: request<StartCodingWorkflowInput, CodingWorkflowRun>()("coding-workflows:start"),
+    listForProject: request<ProjectIdInput, CodingWorkflowRun[]>()("coding-workflows:list-for-project"),
+    advance: request<AdvanceCodingWorkflowInput, CodingWorkflowRun>()("coding-workflows:advance"),
+    cancel: request<CodingWorkflowRunIdInput, CodingWorkflowRun>()("coding-workflows:cancel"),
+  },
   license: {
     getState: request<undefined, LicenseState>()("license:get-state"),
     openCheckout: request<LicenseCheckoutRequest, void>()("license:open-checkout"),
@@ -2174,6 +2184,7 @@ export const IPC_GROUP_PATHS = {
   worktrees: "worktrees",
   developmentTasks: "developmentTasks",
   gitReview: "gitReview",
+  codingWorkflows: "codingWorkflows",
   threadRepositoryScope: "threadRepositoryScope",
   license: "license",
   hostedServers: "hostedServers",

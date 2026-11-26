@@ -226,6 +226,18 @@ function fakePort(): { port: ProjectPort; dispose: () => void } {
       }),
       createPullRequest: async () => "https://github.com/yadenmustopa/ManageBot/pull/1",
     },
+    codingWorkflows: {
+      start: async () => {
+        throw new Error("not used");
+      },
+      listForProject: async () => [],
+      advance: async () => {
+        throw new Error("not used");
+      },
+      cancel: async () => {
+        throw new Error("not used");
+      },
+    },
     threadRepositoryScope: {
       getScope: async ({ threadId }) => ({ threadId, projectId: null, repositoryId: null, worktreeId: null }),
       setScope: async ({ threadId, projectId, repositoryId, worktreeId }) => ({

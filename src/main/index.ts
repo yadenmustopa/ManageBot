@@ -88,6 +88,7 @@ import { browserIpcHandlers } from "./ipc/browser-handlers";
 import { channelFolderIpcHandlers } from "./ipc/channel-folder-handlers";
 import { channelMemoryIpcHandlers } from "./ipc/channel-memory-handlers";
 import { channelRoutineIpcHandlers } from "./ipc/channel-routine-handlers";
+import { codingWorkflowIpcHandlers } from "./ipc/coding-workflow-handlers";
 import { computerUseIpcHandlers } from "./ipc/computer-use-handlers";
 import { creditsIpcHandlers } from "./ipc/credits-handlers";
 import { crmIpcHandlers } from "./ipc/crm-handlers";
@@ -796,6 +797,7 @@ function registerIpcHandlers({
   repositories,
   worktrees,
   developmentTasks,
+  codingWorkflows,
   threadRepositoryScopes,
   hostedServers,
   localServers,
@@ -947,6 +949,7 @@ function registerIpcHandlers({
     ...worktreeIpcHandlers({ worktrees }),
     ...developmentTaskIpcHandlers({ developmentTasks }),
     ...gitReviewIpcHandlers({ repositories, worktrees }),
+    ...codingWorkflowIpcHandlers({ codingWorkflows }),
     ...threadRepositoryScopeIpcHandlers({ threadRepositoryScopes }),
     ...routineFeedIpcHandlers({ routineFeed }),
     ...eventsIpcHandlers({ events, remoteServers }),

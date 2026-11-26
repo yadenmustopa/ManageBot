@@ -121,6 +121,18 @@ function scopedPort(): ProjectPort {
       getGitHubOverview: async () => ({ owner: "", repo: "", issues: [], pullRequests: [], error: null }),
       createPullRequest: async () => "https://github.com/example/repo/pull/1",
     },
+    codingWorkflows: {
+      start: async () => {
+        throw new Error("not used");
+      },
+      listForProject: async () => [],
+      advance: async () => {
+        throw new Error("not used");
+      },
+      cancel: async () => {
+        throw new Error("not used");
+      },
+    },
     threadRepositoryScope: {
       getScope: async ({ threadId }) => ({
         threadId,

@@ -1,4 +1,5 @@
 import type {
+  CodingWorkflowsDesktopApi,
   DevelopmentTasksDesktopApi,
   GitReviewDesktopApi,
   ProjectsDesktopApi,
@@ -109,6 +110,7 @@ export function createMockProjectWorkspace(): {
   worktrees: WorktreesDesktopApi;
   developmentTasks: DevelopmentTasksDesktopApi;
   gitReview: GitReviewDesktopApi;
+  codingWorkflows: CodingWorkflowsDesktopApi;
   threadRepositoryScope: ThreadRepositoryScopeDesktopApi;
 } {
   const workspace = seedWorkspace();
@@ -381,12 +383,62 @@ export function createMockProjectWorkspace(): {
     createPullRequest: async () => "https://github.com/example/repo/pull/1",
   };
 
+  const codingWorkflowsApi: CodingWorkflowsDesktopApi = {
+    start: async ({ taskId }) => ({
+      id: "wf-run-1",
+      taskId,
+      projectId: "project-1",
+      repositoryId: "repo-1",
+      worktreeId: null,
+      currentStep: "plan",
+      status: "running",
+      reviewIteration: 0,
+      maxReviewIterations: 3,
+      logs: [],
+      failureReason: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }),
+    listForProject: async () => [],
+    advance: async ({ runId }) => ({
+      id: runId,
+      taskId: "task-1",
+      projectId: "project-1",
+      repositoryId: "repo-1",
+      worktreeId: null,
+      currentStep: "approval",
+      status: "awaiting-approval",
+      reviewIteration: 0,
+      maxReviewIterations: 3,
+      logs: [],
+      failureReason: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }),
+    cancel: async ({ runId }) => ({
+      id: runId,
+      taskId: "task-1",
+      projectId: "project-1",
+      repositoryId: "repo-1",
+      worktreeId: null,
+      currentStep: "plan",
+      status: "cancelled",
+      reviewIteration: 0,
+      maxReviewIterations: 3,
+      logs: [],
+      failureReason: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }),
+  };
+
   return {
     projects: projectsApi,
     repositories: repositoriesApi,
     worktrees: worktreesApi,
     developmentTasks: developmentTasksApi,
     gitReview: gitReviewApi,
+    codingWorkflows: codingWorkflowsApi,
     threadRepositoryScope: threadRepositoryScopeApi,
   };
 }

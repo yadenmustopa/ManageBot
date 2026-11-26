@@ -1,4 +1,5 @@
 import type {
+  CodingWorkflowsDesktopApi,
   DevelopmentTasksDesktopApi,
   GitReviewDesktopApi,
   ProjectsDesktopApi,
@@ -13,6 +14,7 @@ export interface ProjectPort {
   worktrees: WorktreesDesktopApi;
   developmentTasks: DevelopmentTasksDesktopApi;
   gitReview: GitReviewDesktopApi;
+  codingWorkflows: CodingWorkflowsDesktopApi;
   threadRepositoryScope: ThreadRepositoryScopeDesktopApi;
 }
 

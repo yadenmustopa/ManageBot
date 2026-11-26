@@ -1,4 +1,5 @@
 import {
+  type CodingWorkflowRun,
   type GitDiffResult,
   type GitHubRepositoryOverview,
   type GitReviewSnapshot,
@@ -8,6 +9,8 @@ import {
   type OpenBotWorkspace,
   type OpenBotWorktree,
   type ProjectDashboardSummary,
+  parseCodingWorkflowRunList,
+  parseCodingWorkflowRunResult,
   parseDevelopmentTaskList,
   parseDevelopmentTaskOrNull,
   parseGitDiffResult,
@@ -92,3 +95,9 @@ export const decodeGitHubRepositoryOverview = (value: unknown): GitHubRepository
   required(parseGitHubRepositoryOverview(value), "github overview response");
 
 export const decodeStringResult = (value: unknown): string => required(parseStringResult(value), "string response");
+
+export const decodeCodingWorkflowRun = (value: unknown): CodingWorkflowRun =>
+  required(parseCodingWorkflowRunResult(value), "coding workflow run response");
+
+export const decodeCodingWorkflowRunList = (value: unknown): CodingWorkflowRun[] =>
+  required(parseCodingWorkflowRunList(value), "coding workflow run list response");

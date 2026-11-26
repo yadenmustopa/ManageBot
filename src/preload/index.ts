@@ -336,6 +336,8 @@ import {
   decodePasswordManagerResponses,
 } from "./password-manager-decoding";
 import {
+  decodeCodingWorkflowRun,
+  decodeCodingWorkflowRunList,
   decodeDevelopmentTask,
   decodeDevelopmentTaskList,
   decodeDevelopmentTaskOrNull,
@@ -1224,6 +1226,12 @@ const openbotApi: OpenBotDesktopApi = {
     getDiff: decodeGitDiffResult,
     getGitHubOverview: decodeGitHubRepositoryOverview,
     createPullRequest: decodeStringResult,
+  }),
+  codingWorkflows: bridgeGroup(IPC_ENDPOINTS.codingWorkflows, {
+    start: decodeCodingWorkflowRun,
+    listForProject: decodeCodingWorkflowRunList,
+    advance: decodeCodingWorkflowRun,
+    cancel: decodeCodingWorkflowRun,
   }),
   threadRepositoryScope: bridgeGroup(IPC_ENDPOINTS.threadRepositoryScope, {
     getScope: decodeThreadRepositoryScope,

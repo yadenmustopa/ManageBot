@@ -114,6 +114,7 @@ import { OpenBotDatabase } from "../backend/openbot-database";
 import { PASSWORD_MANAGER_BRANDS } from "../backend/password-vault";
 import { passwordVaultRouter } from "../backend/password-vault-router";
 import { perfTime } from "../backend/perf-probe-hooks";
+import { CodingWorkflowStore } from "../backend/project/coding-workflow-store";
 import { DevelopmentTaskStore } from "../backend/project/development-task-store";
 import { ProjectStore } from "../backend/project/project-store";
 import { RepositoryStore } from "../backend/project/repository-store";
@@ -771,6 +772,7 @@ export interface ApplicationServices {
   repositories: RepositoryStore;
   worktrees: WorktreeStore;
   developmentTasks: DevelopmentTaskStore;
+  codingWorkflows: CodingWorkflowStore;
   threadRepositoryScopes: ThreadRepositoryScopeStore;
   hostedServers: HostedServerDesktopService;
   routineFeed: RoutineFeedServer;
@@ -1288,6 +1290,7 @@ export async function createApplicationServices({
   const repositories = new RepositoryStore(store.database);
   const worktrees = new WorktreeStore(store.database, repositories);
   const developmentTasks = new DevelopmentTaskStore(store.database);
+  const codingWorkflows = new CodingWorkflowStore(developmentTasks);
   const threadRepositoryScopes = new ThreadRepositoryScopeStore(store.database);
   projects.ensureDefaultWorkspace();
   const hostedServers = new HostedServerDesktopService(
@@ -4473,6 +4476,7 @@ export async function createApplicationServices({
     repositories,
     worktrees,
     developmentTasks,
+    codingWorkflows,
     threadRepositoryScopes,
     hostedServers,
     routineFeed,
