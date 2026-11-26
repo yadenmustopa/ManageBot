@@ -12,7 +12,7 @@ import type { AppTranslate } from "@openbot/i18n";
 import { sourceText } from "@openbot/i18n/source";
 import type { BrowserWindow } from "electron";
 import type { RepositoryStore } from "../../backend/project/repository-store";
-import { pickFolder } from "../folder-dialog";
+import { pickFolder, pickFolders } from "../folder-dialog";
 import { handler, type IpcGroupHandlers, payloadHandler } from "./define-ipc-group";
 
 function validInput<T>(parse: (input: unknown) => T | null) {
@@ -57,6 +57,12 @@ export function repositoryIpcHandlers({
         });
         return selected ?? null;
       }),
+      chooseFolders: handler(() =>
+        pickFolders(getMainWindow(), {
+          title: translate("project.import.chooseFolders"),
+          properties: ["openDirectory", "multiSelections"],
+        }),
+      ),
     },
   };
 }

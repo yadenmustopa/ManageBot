@@ -104,6 +104,7 @@ function fakePort(): { port: ProjectPort; dispose: () => void } {
         if (index !== -1) links.splice(index, 1);
       },
       chooseFolder: async () => "/home/me/dev/mabar-desktop",
+      chooseFolders: async () => ["/home/me/dev/mabar-desktop", "/home/me/dev/mabar-backend"],
     },
     worktrees: {
       create: async ({ repositoryId, branchName, baseRef }) => ({
@@ -426,6 +427,26 @@ describe("createProjectsStore", () => {
     store.closeReview();
     await Promise.resolve();
     expect(store.state.reviewTarget).toBeNull();
+    dispose();
+  });
+
+  it("creates a project with multiple selected repository folders", async () => {
+    const { port } = fakePort();
+    const { store, dispose } = withStore(port);
+    await store.load();
+
+    const ok = await store.createProject({
+      name: "Multi Repo Project",
+      description: "Two folders",
+      repositoryPaths: ["/home/me/dev/mabar-desktop", "/home/me/dev/mabar-backend"],
+    });
+    expect(ok).toBe(true);
+    expect(store.state.repositories).toHaveLength(2);
+    expect(store.state.repositories.map((repo) => repo.canonicalPath)).toEqual([
+      "/home/me/dev/mabar-desktop",
+      "/home/me/dev/mabar-backend",
+    ]);
+    expect(store.state.dashboard?.repositoryCount).toBe(2);
     dispose();
   });
 });

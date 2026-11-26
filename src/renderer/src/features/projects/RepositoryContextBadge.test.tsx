@@ -63,6 +63,7 @@ function scopedPort(): ProjectPort {
       refreshRepository: async () => repository,
       detachRepository: async () => {},
       chooseFolder: async () => null,
+      chooseFolders: async () => [],
     },
     worktrees: {
       create: async () => {

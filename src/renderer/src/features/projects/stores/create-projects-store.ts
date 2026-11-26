@@ -128,7 +128,11 @@ export function createProjectsStore(port: () => ProjectPort) {
     }
   }
 
-  async function createProject(input: { name: string; description: string }): Promise<boolean> {
+  async function createProject(input: {
+    name: string;
+    description: string;
+    repositoryPaths?: string[];
+  }): Promise<boolean> {
     const workspaceId = state.workspaceId;
     if (!workspaceId) return false;
     setState((draft) => {
@@ -141,12 +145,26 @@ export function createProjectsStore(port: () => ProjectPort) {
         name: input.name,
         description: input.description,
       });
+      const uniquePaths = [...new Set((input.repositoryPaths ?? []).map((p) => p.trim()).filter(Boolean))];
+      const imported: OpenBotRepository[] = [];
+      for (const path of uniquePaths) {
+        imported.push(await port().repositories.importRepository({ projectId: project.id, path }));
+      }
       setState((draft) => {
         draft.projects = [...draft.projects, project];
         draft.pending = false;
         draft.createOpen = false;
       });
       selectProject(project.id);
+      if (imported.length > 0) {
+        setState((draft) => {
+          if (draft.activeProjectId !== project.id) return;
+          ++repositoryLoadToken;
+          draft.repositories = imported;
+          draft.worktreesByRepository = Object.fromEntries(imported.map((repo) => [repo.id, []]));
+          draft.dashboard = { projectId: project.id, repositoryCount: imported.length };
+        });
+      }
       return true;
     } catch (cause) {
       setState((draft) => {
@@ -458,6 +476,7 @@ export function createProjectsStore(port: () => ProjectPort) {
     openReview,
     selectReviewFile,
     chooseRepositoryFolder: () => port().repositories.chooseFolder(),
+    chooseRepositoryFolders: () => port().repositories.chooseFolders(),
     closeReview: () =>
       setState((draft) => {
         draft.reviewTarget = null;

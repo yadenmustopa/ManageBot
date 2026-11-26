@@ -1205,6 +1205,7 @@ const openbotApi: OpenBotDesktopApi = {
     refreshRepository: decodeRepository,
     detachRepository: decodeVoid,
     chooseFolder: decodeNullableStringResult,
+    chooseFolders: decodeStringList,
   }),
   worktrees: bridgeGroup(IPC_ENDPOINTS.worktrees, {
     create: decodeWorktree,

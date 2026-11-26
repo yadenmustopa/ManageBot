@@ -1470,6 +1470,7 @@ export const IPC_ENDPOINTS = {
     refreshRepository: request<RepositoryIdInput, OpenBotRepository>()("repositories:refresh"),
     detachRepository: request<DetachRepositoryInput, void>()("repositories:detach"),
     chooseFolder: request<undefined, string | null>()("repositories:choose-folder"),
+    chooseFolders: request<undefined, string[]>()("repositories:choose-folders"),
   },
   worktrees: {
     create: request<CreateWorktreeInput, OpenBotWorktree>()("worktrees:create"),

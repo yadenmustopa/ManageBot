@@ -1,18 +1,33 @@
-import { Alert, AlertDescription, Button, Dialog, Field, IconButton, Input, Textarea, X } from "@openbot/ui";
+import { Alert, AlertDescription, Button, Dialog, Field, IconButton, Input, Text, Textarea, X } from "@openbot/ui";
 import { useText } from "@openbot/ui/text";
-import { createStore, Show } from "solid-js";
+import { createStore, For, Show } from "solid-js";
 import { useProjects } from "./project-context";
 
 export function CreateProjectDialog() {
   const projects = useProjects();
   const { t } = useText();
-  const [draft, setDraft] = createStore({ name: "", description: "" });
+  const [draft, setDraft] = createStore<{ name: string; description: string; folders: string[] }>({
+    name: "",
+    description: "",
+    folders: [],
+  });
+
+  function resetDraft() {
+    setDraft((state) => {
+      state.name = "";
+      state.description = "";
+      state.folders = [];
+    });
+  }
 
   return (
     <Dialog.Root
       open={projects.state.createOpen}
       onOpenChange={(open) => {
-        if (!open) projects.closeCreate();
+        if (!open) {
+          resetDraft();
+          projects.closeCreate();
+        }
       }}
     >
       <Dialog.Portal>
@@ -20,7 +35,14 @@ export function CreateProjectDialog() {
           <Dialog.Content class="project-create-dialog">
             <header class="project-dialog-header">
               <Dialog.Title>{t("project.create.title")}</Dialog.Title>
-              <IconButton label={t("project.create.close")} variant="ghost" onClick={projects.closeCreate}>
+              <IconButton
+                label={t("project.create.close")}
+                variant="ghost"
+                onClick={() => {
+                  resetDraft();
+                  projects.closeCreate();
+                }}
+              >
                 <X />
               </IconButton>
             </header>
@@ -28,7 +50,15 @@ export function CreateProjectDialog() {
               class="project-create-form"
               onSubmit={(event) => {
                 event.preventDefault();
-                void projects.createProject({ name: draft.name.trim(), description: draft.description.trim() });
+                void projects
+                  .createProject({
+                    name: draft.name.trim(),
+                    description: draft.description.trim(),
+                    repositoryPaths: draft.folders,
+                  })
+                  .then((created) => {
+                    if (created) resetDraft();
+                  });
               }}
             >
               <Show when={projects.state.error}>
@@ -61,6 +91,49 @@ export function CreateProjectDialog() {
                     })
                   }
                 />
+              </Field>
+              <Field label={t("project.form.folders")} description={t("project.form.foldersHint")}>
+                <div class="project-create-folders">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={projects.state.pending}
+                    onClick={() => {
+                      void projects.chooseRepositoryFolders().then((selected) => {
+                        if (selected.length === 0) return;
+                        setDraft((state) => {
+                          state.folders = [...new Set([...state.folders, ...selected])];
+                        });
+                      });
+                    }}
+                  >
+                    {t("project.import.chooseFolders")}
+                  </Button>
+                  <Show when={draft.folders.length > 0}>
+                    <ul class="project-create-folder-list">
+                      <For each={draft.folders}>
+                        {(folder) => (
+                          <li class="project-create-folder-item">
+                            <Text as="span" variant="caption">
+                              {folder}
+                            </Text>
+                            <IconButton
+                              label={t("project.form.removeFolder")}
+                              variant="ghost"
+                              onClick={() =>
+                                setDraft((state) => {
+                                  state.folders = state.folders.filter((item) => item !== folder);
+                                })
+                              }
+                            >
+                              <X />
+                            </IconButton>
+                          </li>
+                        )}
+                      </For>
+                    </ul>
+                  </Show>
+                </div>
               </Field>
               <footer class="project-editor-footer">
                 <Button type="submit" disabled={projects.state.pending || !draft.name.trim()}>
