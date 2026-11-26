@@ -504,4 +504,11 @@ export const messages = defineMessages("error.backend", {
   "error.backend.repositoryPathNotDirectory": "Choose a folder, not a file.",
   "error.backend.repositoryNotGitWorkingTree": "This folder is not a Git working tree.",
   "error.backend.repositoryAlreadyInProject": "This repository is already in the project.",
+  "error.backend.worktreeGone": "This worktree is no longer registered.",
+  "error.backend.worktreeBranchInvalid": "Choose a valid branch name.",
+  "error.backend.worktreePathInvalid": "This worktree path is not allowed.",
+  "error.backend.worktreePathMissing": "This worktree's folder no longer exists.",
+  "error.backend.worktreeDirtyRemovalRequiresForce":
+    "This worktree has uncommitted changes. Confirm to remove it anyway.",
+  "error.backend.branchAlreadyExists": "A branch with this name already exists.",
 });

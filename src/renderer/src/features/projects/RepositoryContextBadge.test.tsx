@@ -64,8 +64,18 @@ function scopedPort(): ProjectPort {
       detachRepository: async () => {},
     },
     threadRepositoryScope: {
-      getScope: async ({ threadId }) => ({ threadId, projectId: project.id, repositoryId: repository.id }),
-      setScope: async ({ threadId, projectId, repositoryId }) => ({ threadId, projectId, repositoryId }),
+      getScope: async ({ threadId }) => ({
+        threadId,
+        projectId: project.id,
+        repositoryId: repository.id,
+        worktreeId: null,
+      }),
+      setScope: async ({ threadId, projectId, repositoryId, worktreeId }) => ({
+        threadId,
+        projectId,
+        repositoryId,
+        worktreeId: worktreeId ?? null,
+      }),
     },
   };
 }
@@ -74,8 +84,13 @@ function unscopedPort(): ProjectPort {
   return {
     ...scopedPort(),
     threadRepositoryScope: {
-      getScope: async ({ threadId }) => ({ threadId, projectId: null, repositoryId: null }),
-      setScope: async ({ threadId, projectId, repositoryId }) => ({ threadId, projectId, repositoryId }),
+      getScope: async ({ threadId }) => ({ threadId, projectId: null, repositoryId: null, worktreeId: null }),
+      setScope: async ({ threadId, projectId, repositoryId, worktreeId }) => ({
+        threadId,
+        projectId,
+        repositoryId,
+        worktreeId: worktreeId ?? null,
+      }),
     },
   };
 }

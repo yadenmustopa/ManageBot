@@ -65,6 +65,34 @@ export const resolveAgentExecutionContext = Effect.fn("resolveAgentExecutionCont
   const repository = databaseRepository(database, scope.repositoryId);
   if (!repository) return yield* repositoryContextFailure(sourceText("error.backend.repositoryGone"));
 
+  // Phase 3: a thread scoped to a specific worktree (migration 0073's `worktree_id`) resolves to
+  // that worktree's path instead of the repository root. Checked and verified the same way as the
+  // repository itself just below — a worktree that should exist but doesn't fails explicitly, it
+  // never silently falls back to the repository root (same discipline as the repository check).
+  if (scope.worktreeId) {
+    const worktree = databaseWorktree(database, scope.worktreeId);
+    if (!worktree || worktree.repositoryId !== repository.id)
+      return yield* repositoryContextFailure(sourceText("error.backend.worktreeGone"));
+
+    const worktreeIsDirectory = yield* Effect.promise(() =>
+      stat(worktree.canonicalPath).then(
+        (info) => info.isDirectory(),
+        () => false,
+      ),
+    );
+    if (!worktreeIsDirectory) return yield* repositoryContextFailure(sourceText("error.backend.worktreePathMissing"));
+
+    const worktreeInspection = yield* Effect.promise(() => inspectGitRepository(worktree.canonicalPath));
+    if (!worktreeInspection.isWorkingTree)
+      return yield* repositoryContextFailure(sourceText("error.backend.repositoryNotGitWorkingTree"));
+
+    return {
+      cwd: worktree.canonicalPath,
+      writableRoots: [worktree.canonicalPath, sharedRoot, ...existingAgentFolders(agent)],
+      repositoryId: repository.id,
+    } satisfies AgentExecutionContext;
+  }
+
   const isDirectory = yield* Effect.promise(() =>
     stat(repository.canonicalPath).then(
       (info) => info.isDirectory(),
@@ -97,4 +125,22 @@ function databaseRepository(
   );
   if (!row) return null;
   return { id: requiredStringColumn(row, "repository_id"), canonicalPath: requiredStringColumn(row, "canonical_path") };
+}
+
+function databaseWorktree(
+  database: OpenBotDatabase,
+  worktreeId: string,
+): { repositoryId: string; canonicalPath: string } | null {
+  // Same non-throwing-lookup reasoning as `databaseRepository` above, to avoid a circular import
+  // with worktree-store.ts's error-throwing accessors.
+  const row = databaseRow(
+    database.connection
+      .prepare("SELECT repository_id, canonical_path FROM projection_worktrees WHERE worktree_id = ?")
+      .get(worktreeId),
+  );
+  if (!row) return null;
+  return {
+    repositoryId: requiredStringColumn(row, "repository_id"),
+    canonicalPath: requiredStringColumn(row, "canonical_path"),
+  };
 }

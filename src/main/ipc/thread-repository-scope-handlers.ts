@@ -27,13 +27,14 @@ export function threadRepositoryScopeIpcHandlers({
     threadRepositoryScope: {
       getScope: payloadHandler(validInput(parseThreadIdInput), ({ threadId }: ThreadIdInput) => {
         const scope = threadRepositoryScopes.getScope(threadId);
-        return { threadId, projectId: scope.projectId, repositoryId: scope.repositoryId };
+        return { threadId, projectId: scope.projectId, repositoryId: scope.repositoryId, worktreeId: scope.worktreeId };
       }),
       setScope: payloadHandler(
         validInput(parseSetThreadRepositoryScopeInput),
-        ({ threadId, projectId, repositoryId }: SetThreadRepositoryScopeInput) => {
-          threadRepositoryScopes.setScope(threadId, projectId, repositoryId);
-          return { threadId, projectId, repositoryId };
+        ({ threadId, projectId, repositoryId, worktreeId }: SetThreadRepositoryScopeInput) => {
+          const resolvedWorktreeId = worktreeId ?? null;
+          threadRepositoryScopes.setScope(threadId, projectId, repositoryId, resolvedWorktreeId);
+          return { threadId, projectId, repositoryId, worktreeId: resolvedWorktreeId };
         },
       ),
     },

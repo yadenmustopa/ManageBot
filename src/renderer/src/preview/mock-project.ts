@@ -2,23 +2,29 @@ import type {
   ProjectsDesktopApi,
   RepositoriesDesktopApi,
   ThreadRepositoryScopeDesktopApi,
+  WorktreesDesktopApi,
 } from "@openbot/contracts/ipc";
 import {
   type CreateProjectInput,
+  type CreateWorktreeInput,
   createProjectId,
   createRepositoryId,
   createWorkspaceId,
+  createWorktreeId,
   type DetachRepositoryInput,
   type ImportRepositoryInput,
   LOCAL_HOST_ID,
   type OpenBotProject,
   type OpenBotRepository,
   type OpenBotWorkspace,
+  type OpenBotWorktree,
   type ProjectIdInput,
+  type RemoveWorktreeInput,
   type RepositoryIdInput,
   type SetThreadRepositoryScopeInput,
   type ThreadIdInput,
   type UpdateProjectInput,
+  type WorktreeIdInput,
 } from "@openbot/contracts/project";
 import { sourceText } from "@openbot/i18n/source";
 
@@ -92,6 +98,7 @@ function seedRepositories(projectId: string): { repository: OpenBotRepository; p
 export function createMockProjectWorkspace(): {
   projects: ProjectsDesktopApi;
   repositories: RepositoriesDesktopApi;
+  worktrees: WorktreesDesktopApi;
   threadRepositoryScope: ThreadRepositoryScopeDesktopApi;
 } {
   const workspace = seedWorkspace();
@@ -206,17 +213,72 @@ export function createMockProjectWorkspace(): {
     },
   };
 
-  const threadScopes = new Map<string, { projectId: string | null; repositoryId: string | null }>();
-  const threadRepositoryScopeApi: ThreadRepositoryScopeDesktopApi = {
-    getScope: async ({ threadId }: ThreadIdInput) => {
-      const scope = threadScopes.get(threadId) ?? { projectId: null, repositoryId: null };
-      return { threadId, ...scope };
+  const worktrees = new Map<string, OpenBotWorktree>();
+
+  function requireWorktree(worktreeId: string): OpenBotWorktree {
+    const worktree = worktrees.get(worktreeId);
+    if (!worktree) throw new Error(sourceText("error.backend.worktreeGone"));
+    return worktree;
+  }
+
+  const worktreesApi: WorktreesDesktopApi = {
+    create: async ({ repositoryId, branchName, baseRef }: CreateWorktreeInput) => {
+      const repository = repositories.get(repositoryId);
+      if (!repository) throw new Error(sourceText("error.backend.repositoryGone"));
+      const now = new Date().toISOString();
+      const slug = branchName.trim().replace(/[^A-Za-z0-9._-]+/g, "-");
+      const worktree: OpenBotWorktree = {
+        id: createWorktreeId(),
+        repositoryId,
+        hostId: LOCAL_HOST_ID,
+        taskId: null,
+        branchName: branchName.trim(),
+        baseRef: baseRef ?? null,
+        canonicalPath: `${repository.canonicalPath}/../.openbot-worktrees/${repository.name}/${slug}`,
+        managedByApplication: true,
+        lifecycleStatus: "active",
+        createdAt: now,
+        updatedAt: now,
+        archivedAt: null,
+      };
+      worktrees.set(worktree.id, worktree);
+      return structuredClone(worktree);
     },
-    setScope: async ({ threadId, projectId, repositoryId }: SetThreadRepositoryScopeInput) => {
-      threadScopes.set(threadId, { projectId, repositoryId });
-      return { threadId, projectId, repositoryId };
+    listForRepository: async ({ repositoryId }: RepositoryIdInput) =>
+      [...worktrees.values()]
+        .filter((worktree) => worktree.repositoryId === repositoryId)
+        .map((worktree) => structuredClone(worktree)),
+    inspect: async ({ worktreeId }: WorktreeIdInput) => {
+      const worktree = requireWorktree(worktreeId);
+      return { worktreeId, exists: true, isWorkingTree: true, currentBranch: worktree.branchName, dirty: false };
+    },
+    refresh: async ({ worktreeId }: WorktreeIdInput) => structuredClone(requireWorktree(worktreeId)),
+    remove: async ({ worktreeId }: RemoveWorktreeInput) => {
+      requireWorktree(worktreeId);
+      worktrees.delete(worktreeId);
     },
   };
 
-  return { projects: projectsApi, repositories: repositoriesApi, threadRepositoryScope: threadRepositoryScopeApi };
+  const threadScopes = new Map<
+    string,
+    { projectId: string | null; repositoryId: string | null; worktreeId: string | null }
+  >();
+  const threadRepositoryScopeApi: ThreadRepositoryScopeDesktopApi = {
+    getScope: async ({ threadId }: ThreadIdInput) => {
+      const scope = threadScopes.get(threadId) ?? { projectId: null, repositoryId: null, worktreeId: null };
+      return { threadId, ...scope };
+    },
+    setScope: async ({ threadId, projectId, repositoryId, worktreeId }: SetThreadRepositoryScopeInput) => {
+      const resolvedWorktreeId = worktreeId ?? null;
+      threadScopes.set(threadId, { projectId, repositoryId, worktreeId: resolvedWorktreeId });
+      return { threadId, projectId, repositoryId, worktreeId: resolvedWorktreeId };
+    },
+  };
+
+  return {
+    projects: projectsApi,
+    repositories: repositoriesApi,
+    worktrees: worktreesApi,
+    threadRepositoryScope: threadRepositoryScopeApi,
+  };
 }

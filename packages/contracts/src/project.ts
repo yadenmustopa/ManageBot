@@ -70,6 +70,10 @@ export function createRepositoryId(): string {
   return `repo-${crypto.randomUUID()}`;
 }
 
+export function createWorktreeId(): string {
+  return `worktree-${crypto.randomUUID()}`;
+}
+
 function isNonEmptyName(value: unknown): value is string {
   return isString(value) && value.trim().length > 0 && value.length <= MAX_NAME_LENGTH;
 }
@@ -331,6 +335,8 @@ export interface ThreadRepositoryScope {
   threadId: string;
   projectId: string | null;
   repositoryId: string | null;
+  /** Phase 3: when set, a session's execution context resolves to this worktree, not the repository root. */
+  worktreeId: string | null;
 }
 
 export interface ThreadIdInput {
@@ -345,16 +351,165 @@ export interface SetThreadRepositoryScopeInput {
   threadId: string;
   projectId: string | null;
   repositoryId: string | null;
+  worktreeId?: string | null;
 }
 
 export function parseSetThreadRepositoryScopeInput(value: unknown): SetThreadRepositoryScopeInput | null {
   if (!isDynamicRecord(value) || !isString(value.threadId)) return null;
   if (!isNullableString(value.projectId) || !isNullableString(value.repositoryId)) return null;
-  return { threadId: value.threadId, projectId: value.projectId, repositoryId: value.repositoryId };
+  const input: SetThreadRepositoryScopeInput = {
+    threadId: value.threadId,
+    projectId: value.projectId,
+    repositoryId: value.repositoryId,
+  };
+  if (value.worktreeId !== undefined) {
+    if (!isNullableString(value.worktreeId)) return null;
+    input.worktreeId = value.worktreeId;
+  }
+  return input;
 }
 
 export function parseThreadRepositoryScope(value: unknown): ThreadRepositoryScope | null {
   if (!isDynamicRecord(value) || !isString(value.threadId)) return null;
   if (!isNullableString(value.projectId) || !isNullableString(value.repositoryId)) return null;
-  return { threadId: value.threadId, projectId: value.projectId, repositoryId: value.repositoryId };
+  if (!isNullableString(value.worktreeId)) return null;
+  return {
+    threadId: value.threadId,
+    projectId: value.projectId,
+    repositoryId: value.repositoryId,
+    worktreeId: value.worktreeId,
+  };
+}
+
+export type WorktreeLifecycleStatus = "active" | "stale" | "archived";
+
+export const WORKTREE_LIFECYCLE_STATUS_VALUES: readonly WorktreeLifecycleStatus[] = ["active", "stale", "archived"];
+
+function isWorktreeLifecycleStatus(value: unknown): value is WorktreeLifecycleStatus {
+  return isOneOf(WORKTREE_LIFECYCLE_STATUS_VALUES, value);
+}
+
+export interface OpenBotWorktree {
+  id: string;
+  repositoryId: string;
+  hostId: string;
+  taskId: string | null;
+  branchName: string;
+  baseRef: string | null;
+  canonicalPath: string;
+  managedByApplication: boolean;
+  lifecycleStatus: WorktreeLifecycleStatus;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt: string | null;
+}
+
+export interface WorktreeStatus {
+  worktreeId: string;
+  /** false when the directory is missing on disk. */
+  exists: boolean;
+  isWorkingTree: boolean;
+  currentBranch: string | null;
+  dirty: boolean | null;
+}
+
+function parseWorktree(row: DynamicRecord): OpenBotWorktree | null {
+  if (
+    !isString(row.id) ||
+    !isString(row.repositoryId) ||
+    !isString(row.hostId) ||
+    !isNullableString(row.taskId) ||
+    !isString(row.branchName) ||
+    !isNullableString(row.baseRef) ||
+    !isString(row.canonicalPath) ||
+    !isBoolean(row.managedByApplication) ||
+    !isWorktreeLifecycleStatus(row.lifecycleStatus) ||
+    !isString(row.createdAt) ||
+    !isString(row.updatedAt) ||
+    !isNullableString(row.archivedAt)
+  )
+    return null;
+  return {
+    id: row.id,
+    repositoryId: row.repositoryId,
+    hostId: row.hostId,
+    taskId: row.taskId,
+    branchName: row.branchName,
+    baseRef: row.baseRef,
+    canonicalPath: row.canonicalPath,
+    managedByApplication: row.managedByApplication,
+    lifecycleStatus: row.lifecycleStatus,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    archivedAt: row.archivedAt,
+  };
+}
+
+export function parseWorktreeOrNull(value: unknown): OpenBotWorktree | null {
+  return isDynamicRecord(value) ? parseWorktree(value) : null;
+}
+
+export function parseWorktreeList(value: unknown): OpenBotWorktree[] | null {
+  if (!Array.isArray(value)) return null;
+  const worktrees: OpenBotWorktree[] = [];
+  for (const item of value) {
+    if (!isDynamicRecord(item)) return null;
+    const worktree = parseWorktree(item);
+    if (!worktree) return null;
+    worktrees.push(worktree);
+  }
+  return worktrees;
+}
+
+export function parseWorktreeStatus(value: unknown): WorktreeStatus | null {
+  if (!isDynamicRecord(value) || !isString(value.worktreeId) || !isBoolean(value.exists)) return null;
+  if (!isBoolean(value.isWorkingTree) || !isNullableString(value.currentBranch) || !isNullableBoolean(value.dirty))
+    return null;
+  return {
+    worktreeId: value.worktreeId,
+    exists: value.exists,
+    isWorkingTree: value.isWorkingTree,
+    currentBranch: value.currentBranch,
+    dirty: value.dirty,
+  };
+}
+
+export interface CreateWorktreeInput {
+  repositoryId: string;
+  branchName: string;
+  baseRef?: string | null;
+}
+
+export function parseCreateWorktreeInput(value: unknown): CreateWorktreeInput | null {
+  if (!isDynamicRecord(value) || !isString(value.repositoryId) || !isString(value.branchName)) return null;
+  if (value.branchName.trim().length === 0 || value.branchName.length > MAX_NAME_LENGTH) return null;
+  const input: CreateWorktreeInput = { repositoryId: value.repositoryId, branchName: value.branchName };
+  if (value.baseRef !== undefined) {
+    if (!isNullableString(value.baseRef)) return null;
+    input.baseRef = value.baseRef;
+  }
+  return input;
+}
+
+export interface WorktreeIdInput {
+  worktreeId: string;
+}
+
+export function parseWorktreeIdInput(value: unknown): WorktreeIdInput | null {
+  return isDynamicRecord(value) && isString(value.worktreeId) ? { worktreeId: value.worktreeId } : null;
+}
+
+export interface RemoveWorktreeInput {
+  worktreeId: string;
+  force?: boolean;
+}
+
+export function parseRemoveWorktreeInput(value: unknown): RemoveWorktreeInput | null {
+  if (!isDynamicRecord(value) || !isString(value.worktreeId)) return null;
+  const input: RemoveWorktreeInput = { worktreeId: value.worktreeId };
+  if (value.force !== undefined) {
+    if (!isBoolean(value.force)) return null;
+    input.force = value.force;
+  }
+  return input;
 }

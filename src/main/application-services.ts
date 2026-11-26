@@ -117,6 +117,7 @@ import { perfTime } from "../backend/perf-probe-hooks";
 import { ProjectStore } from "../backend/project/project-store";
 import { RepositoryStore } from "../backend/project/repository-store";
 import { ThreadRepositoryScopeStore } from "../backend/project/thread-repository-scope";
+import { WorktreeStore } from "../backend/project/worktree-store";
 import { sweepProviderTemp } from "../backend/provider-temp";
 import { routineFlowRoutines } from "../backend/routine-flows/routine-flow-routines";
 import { RoutineFlowStore } from "../backend/routine-flows/routine-flow-store";
@@ -767,6 +768,7 @@ export interface ApplicationServices {
   credits: CreditsDesktopService;
   projects: ProjectStore;
   repositories: RepositoryStore;
+  worktrees: WorktreeStore;
   threadRepositoryScopes: ThreadRepositoryScopeStore;
   hostedServers: HostedServerDesktopService;
   routineFeed: RoutineFeedServer;
@@ -1282,6 +1284,7 @@ export async function createApplicationServices({
   const credits = new CreditsDesktopService(centralAuth, openLink);
   const projects = new ProjectStore(store.database);
   const repositories = new RepositoryStore(store.database);
+  const worktrees = new WorktreeStore(store.database, repositories);
   const threadRepositoryScopes = new ThreadRepositoryScopeStore(store.database);
   projects.ensureDefaultWorkspace();
   const hostedServers = new HostedServerDesktopService(
@@ -4465,6 +4468,7 @@ export async function createApplicationServices({
     credits,
     projects,
     repositories,
+    worktrees,
     threadRepositoryScopes,
     hostedServers,
     routineFeed,

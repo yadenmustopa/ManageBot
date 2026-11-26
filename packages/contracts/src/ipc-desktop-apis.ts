@@ -60,6 +60,7 @@ export type ReferralDesktopApi = GroupApi<IpcEndpoints["referral"]>;
 export type CreditsDesktopApi = GroupApi<IpcEndpoints["credits"]>;
 export type ProjectsDesktopApi = GroupApi<IpcEndpoints["projects"]>;
 export type RepositoriesDesktopApi = GroupApi<IpcEndpoints["repositories"]>;
+export type WorktreesDesktopApi = GroupApi<IpcEndpoints["worktrees"]>;
 export type ThreadRepositoryScopeDesktopApi = GroupApi<IpcEndpoints["threadRepositoryScope"]>;
 export type LicenseDesktopApi = GroupApi<IpcEndpoints["license"]>;
 export type RoutineFeedDesktopApi = GroupApi<IpcEndpoints["routineFeed"]>;

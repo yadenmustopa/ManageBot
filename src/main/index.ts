@@ -132,6 +132,7 @@ import { updateIpcHandlers } from "./ipc/update-handlers";
 import { vaultIpcHandlers } from "./ipc/vault-handlers";
 import { voiceIpcHandlers } from "./ipc/voice-handlers";
 import { workflowIpcHandlers } from "./ipc/workflow-handlers";
+import { worktreeIpcHandlers } from "./ipc/worktree-handlers";
 import { KeepAwake } from "./keep-awake";
 import { stopAppImageCrashpadHandlerAtExit } from "./linux-appimage-crashpad";
 import { relaunchApp } from "./linux-appimage-relaunch";
@@ -791,6 +792,7 @@ function registerIpcHandlers({
   credits,
   projects,
   repositories,
+  worktrees,
   threadRepositoryScopes,
   hostedServers,
   localServers,
@@ -939,6 +941,7 @@ function registerIpcHandlers({
     ...creditsIpcHandlers({ credits }),
     ...projectIpcHandlers({ projects, repositories }),
     ...repositoryIpcHandlers({ repositories }),
+    ...worktreeIpcHandlers({ worktrees }),
     ...threadRepositoryScopeIpcHandlers({ threadRepositoryScopes }),
     ...routineFeedIpcHandlers({ routineFeed }),
     ...eventsIpcHandlers({ events, remoteServers }),

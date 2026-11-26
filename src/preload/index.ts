@@ -345,6 +345,9 @@ import {
   decodeThreadRepositoryScope,
   decodeWorkspace,
   decodeWorkspaceList,
+  decodeWorktree,
+  decodeWorktreeList,
+  decodeWorktreeStatus,
 } from "./project-decoding";
 import { decodeProviderRuntimeSnapshot } from "./provider-runtime";
 import {
@@ -1190,6 +1193,13 @@ const openbotApi: OpenBotDesktopApi = {
     listForProject: decodeRepositoryList,
     refreshRepository: decodeRepository,
     detachRepository: decodeVoid,
+  }),
+  worktrees: bridgeGroup(IPC_ENDPOINTS.worktrees, {
+    create: decodeWorktree,
+    listForRepository: decodeWorktreeList,
+    inspect: decodeWorktreeStatus,
+    refresh: decodeWorktree,
+    remove: decodeVoid,
   }),
   threadRepositoryScope: bridgeGroup(IPC_ENDPOINTS.threadRepositoryScope, {
     getScope: decodeThreadRepositoryScope,

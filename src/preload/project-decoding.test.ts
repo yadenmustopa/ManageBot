@@ -10,6 +10,9 @@ import {
   decodeRepositoryList,
   decodeWorkspace,
   decodeWorkspaceList,
+  decodeWorktree,
+  decodeWorktreeList,
+  decodeWorktreeStatus,
 } from "./project-decoding";
 
 const WORKSPACE = {
@@ -106,5 +109,53 @@ describe("decodeProjectDashboardSummary", () => {
 
   it("refuses a summary without a repository count", () => {
     expect(() => decodeProjectDashboardSummary({ projectId: "project-1" })).toThrow();
+  });
+});
+
+const WORKTREE = {
+  id: "worktree-1",
+  repositoryId: "repo-1",
+  hostId: "local",
+  taskId: null,
+  branchName: "feat/timeline-editor",
+  baseRef: "main",
+  canonicalPath: "/home/sam/.openbot-worktrees/mabar-desktop/feat-timeline-editor",
+  managedByApplication: true,
+  lifecycleStatus: "active",
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+  archivedAt: null,
+};
+
+describe("decodeWorktree", () => {
+  it("keeps a valid worktree", () => {
+    expect(decodeWorktree(WORKTREE)).toEqual(WORKTREE);
+  });
+
+  it("refuses a worktree with an unknown lifecycle status", () => {
+    expect(() => decodeWorktree({ ...WORKTREE, lifecycleStatus: "unknown" })).toThrow();
+  });
+
+  it("decodes a worktree list", () => {
+    expect(decodeWorktreeList([WORKTREE])).toEqual([WORKTREE]);
+  });
+});
+
+describe("decodeWorktreeStatus", () => {
+  it("keeps a valid status", () => {
+    const status = {
+      worktreeId: "worktree-1",
+      exists: true,
+      isWorkingTree: true,
+      currentBranch: "feat/timeline-editor",
+      dirty: false,
+    };
+    expect(decodeWorktreeStatus(status)).toEqual(status);
+  });
+
+  it("refuses a status missing `exists`", () => {
+    expect(() =>
+      decodeWorktreeStatus({ worktreeId: "worktree-1", isWorkingTree: true, currentBranch: null, dirty: null }),
+    ).toThrow();
   });
 });

@@ -105,8 +105,13 @@ function fakePort(): { port: ProjectPort; dispose: () => void } {
       },
     },
     threadRepositoryScope: {
-      getScope: async ({ threadId }) => ({ threadId, projectId: null, repositoryId: null }),
-      setScope: async ({ threadId, projectId, repositoryId }) => ({ threadId, projectId, repositoryId }),
+      getScope: async ({ threadId }) => ({ threadId, projectId: null, repositoryId: null, worktreeId: null }),
+      setScope: async ({ threadId, projectId, repositoryId, worktreeId }) => ({
+        threadId,
+        projectId,
+        repositoryId,
+        worktreeId: worktreeId ?? null,
+      }),
     },
   };
   return { port, dispose: () => {} };

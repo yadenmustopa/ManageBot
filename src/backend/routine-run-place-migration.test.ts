@@ -5,6 +5,7 @@ import { CRM_TABLES_AFTER_MIGRATION } from "./crm/crm-schema";
 import { THREAD_EVENT_COMPACTION_TABLES_AFTER_MIGRATION } from "./migrations/0065-thread-event-compaction";
 import { PROJECTS_TABLES_AFTER_MIGRATION } from "./migrations/0070-projects";
 import { THREAD_REPOSITORY_SCOPE_TABLES_AFTER_MIGRATION } from "./migrations/0071-thread-repository-scope";
+import { WORKTREES_TABLES_AFTER_MIGRATION } from "./migrations/0072-worktrees";
 import { migrateOpenBotDatabase } from "./openbot-database-schema";
 
 const databases: DatabaseSync[] = [];
@@ -77,6 +78,7 @@ const LATER_TABLES = {
   projection_pinned_thread_messages: [],
   ...PROJECTS_TABLES_AFTER_MIGRATION,
   ...THREAD_REPOSITORY_SCOPE_TABLES_AFTER_MIGRATION,
+  ...WORKTREES_TABLES_AFTER_MIGRATION,
 };
 
 function withChatRunPlace(before: Contents): Contents {
@@ -94,7 +96,7 @@ function columns(db: DatabaseSync, table: string): string[] {
 }
 
 function expectHealthy(db: DatabaseSync): void {
-  expect(db.prepare("SELECT MAX(version) AS version FROM schema_migrations").get()).toEqual({ version: 71 });
+  expect(db.prepare("SELECT MAX(version) AS version FROM schema_migrations").get()).toEqual({ version: 73 });
   expect(db.prepare("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
   expect(db.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
   expect(db.prepare("PRAGMA integrity_check").get()).toEqual({ integrity_check: "ok" });
@@ -152,9 +154,9 @@ describe("agent routine run place migration", () => {
     seed(db);
     const before = contents(db);
     const columnsBefore = columns(db, "projection_agent_routines");
-    db.exec("INSERT INTO schema_migrations VALUES(72,'now')");
+    db.exec("INSERT INTO schema_migrations VALUES(74,'now')");
     expect(() => migrateOpenBotDatabase(db)).toThrow("newer than this application supports");
-    db.exec("DELETE FROM schema_migrations WHERE version=72; DELETE FROM schema_migrations WHERE version=54");
+    db.exec("DELETE FROM schema_migrations WHERE version=74; DELETE FROM schema_migrations WHERE version=54");
     expect(() => migrateOpenBotDatabase(db)).toThrow("missing version 54");
     expect(contents(db)).toEqual(before);
     expect(columns(db, "projection_agent_routines")).toEqual(columnsBefore);
@@ -165,7 +167,7 @@ describe("agent routine run place migration", () => {
     seed(db);
     migrateOpenBotDatabase(db);
     const after = contents(db);
-    db.exec("INSERT INTO schema_migrations VALUES(72,'now')");
+    db.exec("INSERT INTO schema_migrations VALUES(74,'now')");
     expect(() => migrateOpenBotDatabase(db)).toThrow("newer than this application supports");
     expect(contents(db)).toEqual(after);
   });

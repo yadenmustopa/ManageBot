@@ -696,19 +696,24 @@ import type { AccountSession, MobileConnectedDevice, MobileConnectLink, MobileCo
 import type { AcceptedOwnerTransfer, OwnerTransfer } from "./owner-transfer";
 import type {
   CreateProjectInput,
+  CreateWorktreeInput,
   DetachRepositoryInput,
   ImportRepositoryInput,
   OpenBotProject,
   OpenBotRepository,
   OpenBotWorkspace,
+  OpenBotWorktree,
   ProjectDashboardSummary,
   ProjectIdInput,
+  RemoveWorktreeInput,
   RepositoryIdInput,
   SetThreadRepositoryScopeInput,
   ThreadIdInput,
   ThreadRepositoryScope,
   UpdateProjectInput,
   WorkspaceIdInput,
+  WorktreeIdInput,
+  WorktreeStatus,
 } from "./project";
 import type { ReferralPageRequest, ReferralState } from "./referral";
 import type { AgentActiveQueues } from "./team-protocol/agent-active-queues-v1";
@@ -1450,6 +1455,13 @@ export const IPC_ENDPOINTS = {
     refreshRepository: request<RepositoryIdInput, OpenBotRepository>()("repositories:refresh"),
     detachRepository: request<DetachRepositoryInput, void>()("repositories:detach"),
   },
+  worktrees: {
+    create: request<CreateWorktreeInput, OpenBotWorktree>()("worktrees:create"),
+    listForRepository: request<RepositoryIdInput, OpenBotWorktree[]>()("worktrees:list-for-repository"),
+    inspect: request<WorktreeIdInput, WorktreeStatus>()("worktrees:inspect"),
+    refresh: request<WorktreeIdInput, OpenBotWorktree>()("worktrees:refresh"),
+    remove: request<RemoveWorktreeInput, void>()("worktrees:remove"),
+  },
   license: {
     getState: request<undefined, LicenseState>()("license:get-state"),
     openCheckout: request<LicenseCheckoutRequest, void>()("license:open-checkout"),
@@ -2132,6 +2144,7 @@ export const IPC_GROUP_PATHS = {
   credits: "credits",
   projects: "projects",
   repositories: "repositories",
+  worktrees: "worktrees",
   threadRepositoryScope: "threadRepositoryScope",
   license: "license",
   hostedServers: "hostedServers",

@@ -12,6 +12,7 @@ import { ProjectStore } from "./project-store";
 import { resolveAgentExecutionContext } from "./repository-context-resolver";
 import { RepositoryStore } from "./repository-store";
 import { ThreadRepositoryScopeStore } from "./thread-repository-scope";
+import { WorktreeStore } from "./worktree-store";
 
 const roots: string[] = [];
 
@@ -134,4 +135,51 @@ describe("resolveAgentExecutionContext", () => {
   // enforced on every write (see the FOREIGN KEY constraint failure this test used to hit before
   // it was removed). `resolveAgentExecutionContext`'s `repositoryGone` branch is defense-in-depth
   // for that column reaching NULL some other way, not a reachable state under today's schema.
+
+  it("resolves a worktree-scoped thread to the worktree's path, not the repository root (Phase 3)", async () => {
+    const database = await createDatabase();
+    const agent = testAgent("agent-worktree", "thread-worktree", "/tmp/openbot-agent-worktree-workspace");
+    database.replaceAgents("agents-import", [agent], "agents.imported");
+
+    const projects = new ProjectStore(database);
+    const repositories = new RepositoryStore(database);
+    const worktrees = new WorktreeStore(database, repositories);
+    const scopes = new ThreadRepositoryScopeStore(database);
+    const workspace = projects.ensureDefaultWorkspace();
+    const project = projects.createProject({ workspaceId: workspace.id, name: "Worktree scope test" });
+    const repository = await repositories.importRepository(project.id, await createRealGitRepo("worktree-scope-repo"));
+    const worktree = await worktrees.createWorktree(repository.id, "feature-worktree-scope", null);
+    roots.push(join(worktree.canonicalPath, ".."));
+    scopes.setScope("thread-worktree", project.id, repository.id, worktree.id);
+
+    const context = await runCauseEffect(
+      resolveAgentExecutionContext(database, agent, "thread-worktree", "/tmp/shared"),
+    );
+
+    expect(context.cwd).toBe(worktree.canonicalPath);
+    expect(context.cwd).not.toBe(repository.canonicalPath);
+    expect(context.repositoryId).toBe(repository.id);
+    expect(context.writableRoots).toContain(worktree.canonicalPath);
+  });
+
+  it("falls back to the repository root exactly as Phase 2 did when a thread's scope has no worktree", async () => {
+    const database = await createDatabase();
+    const agent = testAgent("agent-repo-only", "thread-repo-only", "/tmp/openbot-agent-repo-only-workspace");
+    database.replaceAgents("agents-import", [agent], "agents.imported");
+
+    const projects = new ProjectStore(database);
+    const repositories = new RepositoryStore(database);
+    const scopes = new ThreadRepositoryScopeStore(database);
+    const workspace = projects.ensureDefaultWorkspace();
+    const project = projects.createProject({ workspaceId: workspace.id, name: "Repo only test" });
+    const repository = await repositories.importRepository(project.id, await createRealGitRepo("repo-only"));
+    scopes.setScope("thread-repo-only", project.id, repository.id);
+
+    const context = await runCauseEffect(
+      resolveAgentExecutionContext(database, agent, "thread-repo-only", "/tmp/shared"),
+    );
+
+    expect(context.cwd).toBe(repository.canonicalPath);
+    expect(context.repositoryId).toBe(repository.id);
+  });
 });

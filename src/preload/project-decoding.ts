@@ -2,6 +2,7 @@ import {
   type OpenBotProject,
   type OpenBotRepository,
   type OpenBotWorkspace,
+  type OpenBotWorktree,
   type ProjectDashboardSummary,
   parseProjectDashboardSummary,
   parseProjectList,
@@ -11,7 +12,11 @@ import {
   parseThreadRepositoryScope,
   parseWorkspaceList,
   parseWorkspaceOrNull,
+  parseWorktreeList,
+  parseWorktreeOrNull,
+  parseWorktreeStatus,
   type ThreadRepositoryScope,
+  type WorktreeStatus,
 } from "@openbot/contracts/project";
 
 function required<T>(value: T | null, label: string): T {
@@ -45,3 +50,12 @@ export const decodeProjectDashboardSummary = (value: unknown): ProjectDashboardS
 
 export const decodeThreadRepositoryScope = (value: unknown): ThreadRepositoryScope =>
   required(parseThreadRepositoryScope(value), "thread repository scope response");
+
+export const decodeWorktree = (value: unknown): OpenBotWorktree =>
+  required(parseWorktreeOrNull(value), "worktree response");
+
+export const decodeWorktreeList = (value: unknown): OpenBotWorktree[] =>
+  required(parseWorktreeList(value), "worktree list response");
+
+export const decodeWorktreeStatus = (value: unknown): WorktreeStatus =>
+  required(parseWorktreeStatus(value), "worktree status response");
