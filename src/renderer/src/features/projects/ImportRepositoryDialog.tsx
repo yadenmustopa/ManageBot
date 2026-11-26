@@ -39,13 +39,27 @@ export function ImportRepositoryDialog() {
                 )}
               </Show>
               <Field label={t("project.import.path")} description={t("project.import.pathHint")}>
-                <Input
-                  size="lg"
-                  placeholder={t("project.import.pathPlaceholder")}
-                  required
-                  value={path()}
-                  onValueChange={setPath}
-                />
+                <div class="project-import-path-row">
+                  <Input
+                    size="lg"
+                    placeholder={t("project.import.pathPlaceholder")}
+                    required
+                    value={path()}
+                    onValueChange={setPath}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={projects.state.pending}
+                    onClick={() => {
+                      void projects.chooseRepositoryFolder().then((selected) => {
+                        if (selected) setPath(selected);
+                      });
+                    }}
+                  >
+                    {t("project.import.chooseFolder")}
+                  </Button>
+                </div>
               </Field>
               <footer class="project-editor-footer">
                 <Button type="submit" disabled={projects.state.pending || !path().trim()}>

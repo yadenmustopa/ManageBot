@@ -8,10 +8,12 @@ import {
   parseRepositoryIdInput,
   type RepositoryIdInput,
 } from "@openbot/contracts/project";
+import type { AppTranslate } from "@openbot/i18n";
 import { sourceText } from "@openbot/i18n/source";
+import type { BrowserWindow } from "electron";
 import type { RepositoryStore } from "../../backend/project/repository-store";
-import type { IpcGroupHandlers } from "./define-ipc-group";
-import { payloadHandler } from "./define-ipc-group";
+import { pickFolder } from "../folder-dialog";
+import { handler, type IpcGroupHandlers, payloadHandler } from "./define-ipc-group";
 
 function validInput<T>(parse: (input: unknown) => T | null) {
   return (input: unknown): T => {
@@ -23,10 +25,14 @@ function validInput<T>(parse: (input: unknown) => T | null) {
 
 export interface RepositoryIpcDependencies {
   repositories: RepositoryStore;
+  getMainWindow: () => BrowserWindow | null;
+  translate: AppTranslate;
 }
 
 export function repositoryIpcHandlers({
   repositories,
+  getMainWindow,
+  translate,
 }: RepositoryIpcDependencies): Pick<IpcGroupHandlers, "repositories"> {
   return {
     repositories: {
@@ -44,6 +50,13 @@ export function repositoryIpcHandlers({
         validInput(parseDetachRepositoryInput),
         ({ projectId, repositoryId }: DetachRepositoryInput) => repositories.detachRepository(projectId, repositoryId),
       ),
+      chooseFolder: handler(async () => {
+        const selected = await pickFolder(getMainWindow(), {
+          title: translate("project.import.chooseFolder"),
+          properties: ["openDirectory"],
+        });
+        return selected ?? null;
+      }),
     },
   };
 }

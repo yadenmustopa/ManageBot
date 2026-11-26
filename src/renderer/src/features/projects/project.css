@@ -42,8 +42,8 @@
 .project-sidebar {
   display: flex;
   flex-direction: column;
-  gap: var(--openbot-space-2, 8px);
-  padding: var(--openbot-space-3, 12px);
+  gap: var(--openbot-space-3, 12px);
+  padding: var(--openbot-space-4, 16px);
   border-inline-end: 1px solid var(--openbot-border);
   min-height: 0;
   overflow-y: auto;
@@ -86,8 +86,8 @@
 .project-dashboard {
   display: flex;
   flex-direction: column;
-  gap: var(--openbot-space-4, 16px);
-  padding: var(--openbot-space-4, 16px);
+  gap: var(--openbot-space-5, 20px);
+  padding: var(--openbot-space-5, 24px) var(--openbot-space-6, 28px);
   min-height: 0;
   overflow-y: auto;
 }
@@ -110,7 +110,8 @@
 
 .project-dashboard-metrics {
   display: flex;
-  gap: var(--openbot-space-4, 16px);
+  gap: var(--openbot-space-6, 28px);
+  padding-bottom: var(--openbot-space-2, 8px);
 }
 
 .project-dashboard-metric {
@@ -183,10 +184,24 @@
 .project-import-dialog {
   display: flex;
   flex-direction: column;
-  gap: var(--openbot-space-3, 12px);
-  min-width: 360px;
+  gap: var(--openbot-space-4, 16px);
+  min-width: 420px;
+  padding: var(--openbot-space-5, 20px);
+  border-radius: var(--openbot-radius-lg, 12px);
+  border: 1px solid var(--openbot-border);
   background: var(--openbot-bg-surface-raised);
   color: var(--openbot-text);
+}
+
+.project-import-path-row {
+  display: flex;
+  align-items: center;
+  gap: var(--openbot-space-2, 8px);
+}
+
+.project-import-path-row > :first-child {
+  flex: 1;
+  min-width: 0;
 }
 
 .project-dialog-header {
@@ -256,9 +271,12 @@
 .project-review-dialog {
   display: flex;
   flex-direction: column;
-  gap: var(--openbot-space-3, 12px);
+  gap: var(--openbot-space-4, 16px);
   width: min(760px, 90vw);
   max-height: 85vh;
+  padding: var(--openbot-space-5, 20px);
+  border-radius: var(--openbot-radius-lg, 12px);
+  border: 1px solid var(--openbot-border);
   overflow-y: auto;
   background: var(--openbot-bg-surface-raised);
   color: var(--openbot-text);

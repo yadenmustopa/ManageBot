@@ -344,6 +344,7 @@ import {
   decodeGitDiffResult,
   decodeGitHubRepositoryOverview,
   decodeGitReviewSnapshot,
+  decodeNullableStringResult,
   decodeProject,
   decodeProjectDashboardSummary,
   decodeProjectList,
@@ -1203,6 +1204,7 @@ const openbotApi: OpenBotDesktopApi = {
     listForProject: decodeRepositoryList,
     refreshRepository: decodeRepository,
     detachRepository: decodeVoid,
+    chooseFolder: decodeNullableStringResult,
   }),
   worktrees: bridgeGroup(IPC_ENDPOINTS.worktrees, {
     create: decodeWorktree,

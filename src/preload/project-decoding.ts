@@ -96,6 +96,9 @@ export const decodeGitHubRepositoryOverview = (value: unknown): GitHubRepository
 
 export const decodeStringResult = (value: unknown): string => required(parseStringResult(value), "string response");
 
+export const decodeNullableStringResult = (value: unknown): string | null =>
+  value === null ? null : decodeStringResult(value);
+
 export const decodeCodingWorkflowRun = (value: unknown): CodingWorkflowRun =>
   required(parseCodingWorkflowRunResult(value), "coding workflow run response");
 

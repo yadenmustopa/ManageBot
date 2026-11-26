@@ -457,6 +457,7 @@ export function createProjectsStore(port: () => ProjectPort) {
     archiveTask,
     openReview,
     selectReviewFile,
+    chooseRepositoryFolder: () => port().repositories.chooseFolder(),
     closeReview: () =>
       setState((draft) => {
         draft.reviewTarget = null;

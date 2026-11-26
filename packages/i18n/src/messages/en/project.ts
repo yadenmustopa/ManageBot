@@ -16,6 +16,7 @@ export const messages = defineMessages("project", {
   "project.import.path": "Folder",
   "project.import.pathHint": "The local path to an existing Git repository.",
   "project.import.pathPlaceholder": "/home/me/dev/my-repo",
+  "project.import.chooseFolder": "Select folder",
   "project.import.submit": "Import",
   "project.dashboard.label": "Project dashboard",
   "project.dashboard.noProject": "Create a project to get started.",
