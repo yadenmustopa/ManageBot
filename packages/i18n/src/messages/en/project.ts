@@ -103,4 +103,12 @@ export const messages = defineMessages("project", {
   "project.sessions.new": "New session",
   "project.sessions.empty": "No sessions in this project yet.",
   "project.sessions.open": "Open session",
+  "project.channels.title": "Channels",
+  "project.channels.empty": "No channels connected yet.",
+  "project.channels.selectPlaceholder": "Select a channel...",
+  "project.channels.connect": "Connect channel",
+  "project.channels.default": "Default",
+  "project.channels.setDefault": "Set default",
+  "project.channels.open": "Open",
+  "project.channels.remove": "Disconnect",
 });

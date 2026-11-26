@@ -1,7 +1,9 @@
 import {
   type CreateProjectInput,
+  type ProjectChannelInput,
   type ProjectIdInput,
   parseCreateProjectInput,
+  parseProjectChannelInput,
   parseProjectIdInput,
   parseUpdateProjectInput,
   parseWorkspaceIdInput,
@@ -9,6 +11,7 @@ import {
   type WorkspaceIdInput,
 } from "@openbot/contracts/project";
 import { sourceText } from "@openbot/i18n/source";
+import type { ProjectChannelStore } from "../../backend/project/project-channel-store";
 import type { ProjectStore } from "../../backend/project/project-store";
 import type { RepositoryStore } from "../../backend/project/repository-store";
 import type { ThreadRepositoryScopeStore } from "../../backend/project/thread-repository-scope";
@@ -25,12 +28,14 @@ function validInput<T>(parse: (input: unknown) => T | null) {
 export interface ProjectIpcDependencies {
   projects: ProjectStore;
   repositories: RepositoryStore;
+  projectChannels: ProjectChannelStore;
   threadRepositoryScopes: ThreadRepositoryScopeStore;
 }
 
 export function projectIpcHandlers({
   projects,
   repositories,
+  projectChannels,
   threadRepositoryScopes,
 }: ProjectIpcDependencies): Pick<IpcGroupHandlers, "projects"> {
   return {
@@ -61,6 +66,22 @@ export function projectIpcHandlers({
       })),
       listSessions: payloadHandler(validInput(parseProjectIdInput), ({ projectId }: ProjectIdInput) =>
         threadRepositoryScopes.listSessionsForProject(projectId),
+      ),
+      listChannels: payloadHandler(validInput(parseProjectIdInput), ({ projectId }: ProjectIdInput) =>
+        projectChannels.listChannelsForProject(projectId),
+      ),
+      attachChannel: payloadHandler(
+        validInput(parseProjectChannelInput),
+        ({ projectId, channelId, isDefault }: ProjectChannelInput) =>
+          projectChannels.attachChannel(projectId, channelId, isDefault),
+      ),
+      detachChannel: payloadHandler(
+        validInput(parseProjectChannelInput),
+        ({ projectId, channelId }: ProjectChannelInput) => projectChannels.detachChannel(projectId, channelId),
+      ),
+      setDefaultChannel: payloadHandler(
+        validInput(parseProjectChannelInput),
+        ({ projectId, channelId }: ProjectChannelInput) => projectChannels.setDefaultChannel(projectId, channelId),
       ),
     },
   };

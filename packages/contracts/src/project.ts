@@ -1179,6 +1179,51 @@ export interface ProjectSessionSummary {
   updatedAt: string;
 }
 
+export interface ProjectChannelLink {
+  projectId: string;
+  channelId: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export interface ProjectChannelInput {
+  projectId: string;
+  channelId: string;
+  isDefault?: boolean;
+}
+
+export function parseProjectChannelInput(value: unknown): ProjectChannelInput | null {
+  if (!isDynamicRecord(value) || !isString(value.projectId) || !isString(value.channelId)) return null;
+  const input: ProjectChannelInput = { projectId: value.projectId, channelId: value.channelId };
+  if (value.isDefault !== undefined) {
+    if (!isBoolean(value.isDefault)) return null;
+    input.isDefault = value.isDefault;
+  }
+  return input;
+}
+
+export function parseProjectChannelLinkList(value: unknown): ProjectChannelLink[] | null {
+  if (!Array.isArray(value)) return null;
+  const links: ProjectChannelLink[] = [];
+  for (const item of value) {
+    if (
+      !isDynamicRecord(item) ||
+      !isString(item.projectId) ||
+      !isString(item.channelId) ||
+      !isBoolean(item.isDefault) ||
+      !isString(item.createdAt)
+    )
+      return null;
+    links.push({
+      projectId: item.projectId,
+      channelId: item.channelId,
+      isDefault: item.isDefault,
+      createdAt: item.createdAt,
+    });
+  }
+  return links;
+}
+
 export function parseProjectSessionSummaryList(value: unknown): ProjectSessionSummary[] | null {
   if (!Array.isArray(value)) return null;
   const sessions: ProjectSessionSummary[] = [];

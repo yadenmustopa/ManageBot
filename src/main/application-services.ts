@@ -116,6 +116,7 @@ import { passwordVaultRouter } from "../backend/password-vault-router";
 import { perfTime } from "../backend/perf-probe-hooks";
 import { CodingWorkflowStore } from "../backend/project/coding-workflow-store";
 import { DevelopmentTaskStore } from "../backend/project/development-task-store";
+import { ProjectChannelStore } from "../backend/project/project-channel-store";
 import { ProjectStore } from "../backend/project/project-store";
 import { RepositoryStore } from "../backend/project/repository-store";
 import { ThreadRepositoryScopeStore } from "../backend/project/thread-repository-scope";
@@ -773,6 +774,7 @@ export interface ApplicationServices {
   worktrees: WorktreeStore;
   developmentTasks: DevelopmentTaskStore;
   codingWorkflows: CodingWorkflowStore;
+  projectChannels: ProjectChannelStore;
   threadRepositoryScopes: ThreadRepositoryScopeStore;
   hostedServers: HostedServerDesktopService;
   routineFeed: RoutineFeedServer;
@@ -1291,6 +1293,7 @@ export async function createApplicationServices({
   const worktrees = new WorktreeStore(store.database, repositories);
   const developmentTasks = new DevelopmentTaskStore(store.database);
   const codingWorkflows = new CodingWorkflowStore(developmentTasks);
+  const projectChannels = new ProjectChannelStore(store.database);
   const threadRepositoryScopes = new ThreadRepositoryScopeStore(store.database);
   projects.ensureDefaultWorkspace();
   const hostedServers = new HostedServerDesktopService(
@@ -4477,6 +4480,7 @@ export async function createApplicationServices({
     worktrees,
     developmentTasks,
     codingWorkflows,
+    projectChannels,
     threadRepositoryScopes,
     hostedServers,
     routineFeed,

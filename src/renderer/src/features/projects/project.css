@@ -106,6 +106,12 @@
   flex-shrink: 0;
 }
 
+.project-channel-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--openbot-space-2, 8px);
+}
+
 .project-dashboard-header .ui-heading {
   margin: 0;
 }

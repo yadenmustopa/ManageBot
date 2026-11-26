@@ -346,6 +346,7 @@ import {
   decodeGitReviewSnapshot,
   decodeNullableStringResult,
   decodeProject,
+  decodeProjectChannelLinkList,
   decodeProjectDashboardSummary,
   decodeProjectFileMatchList,
   decodeProjectList,
@@ -1201,6 +1202,10 @@ const openbotApi: OpenBotDesktopApi = {
     restoreProject: decodeVoid,
     getDashboardSummary: decodeProjectDashboardSummary,
     listSessions: decodeProjectSessionSummaryList,
+    listChannels: decodeProjectChannelLinkList,
+    attachChannel: decodeProjectChannelLinkList,
+    detachChannel: decodeProjectChannelLinkList,
+    setDefaultChannel: decodeProjectChannelLinkList,
   }),
   repositories: bridgeGroup(IPC_ENDPOINTS.repositories, {
     importRepository: decodeRepository,

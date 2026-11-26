@@ -1,5 +1,6 @@
 import type { DevelopmentTaskStatus, RepositoryHealth, WorktreeLifecycleStatus } from "@openbot/contracts/project";
 import {
+  Badge,
   Button,
   FolderGit2,
   GitBranch,
@@ -14,13 +15,19 @@ import {
   MessageSquare,
   Plus,
   RefreshCw,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Text,
   Trash2,
   X,
 } from "@openbot/ui";
 import { useText } from "@openbot/ui/text";
-import { For, Show } from "solid-js";
+import { createSignal, For, Show } from "solid-js";
 import { useAgents } from "../agents/agents-context";
+import { useChannels } from "../channels/channels-context";
 import { useWindowPage } from "../window/window-page-context";
 import { useProjects } from "./project-context";
 
@@ -88,9 +95,21 @@ function taskStatusLabel(t: ReturnType<typeof useText>["t"], status: Development
 export function ProjectDashboard() {
   const projects = useProjects();
   const agents = useAgents();
+  const channels = useChannels();
   const windowPage = useWindowPage();
   const { t } = useText();
+  const [selectedChannelId, setSelectedChannelId] = createSignal("");
   const activeProject = () => projects.state.projects.find((project) => project.id === projects.state.activeProjectId);
+  const availableChannels = () => {
+    const attached = new Set(projects.state.channels.map((link) => link.channelId));
+    return channels.state.channels.filter((channel) => !channel.archived && !attached.has(channel.id));
+  };
+  const channelById = (channelId: string) => channels.state.channels.find((candidate) => candidate.id === channelId);
+
+  function openProjectChannel(channelId: string) {
+    void channels.open(channelId);
+    windowPage.showAgents();
+  }
 
   function startCodingSession(projectId: string, repositoryId: string, worktreeId: string | null = null) {
     projects.requestRepositorySession(projectId, repositoryId, worktreeId);
@@ -271,6 +290,89 @@ export function ProjectDashboard() {
                 </For>
               </Show>
             </ItemGroup>
+            <section class="project-tasks-section">
+              <header class="project-tasks-header">
+                <Heading as="h2" size="md">
+                  {t("project.channels.title")}
+                </Heading>
+                <Show when={availableChannels().length > 0}>
+                  <div class="project-channel-picker">
+                    <Select<string>
+                      options={availableChannels().map((channel) => channel.id)}
+                      value={selectedChannelId()}
+                      onChange={(value) => setSelectedChannelId(value ?? "")}
+                      placeholder={t("project.channels.selectPlaceholder")}
+                      itemComponent={(item) => (
+                        <SelectItem item={item.item}>
+                          #{channelById(item.item.rawValue)?.name ?? item.item.rawValue}
+                        </SelectItem>
+                      )}
+                    >
+                      <SelectTrigger size="sm">
+                        <SelectValue<string>>
+                          {(state) => {
+                            const id = state.selectedOption();
+                            return id ? `#${channelById(id)?.name ?? id}` : t("project.channels.selectPlaceholder");
+                          }}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent />
+                    </Select>
+                    <Button
+                      variant="outline"
+                      disabled={!selectedChannelId()}
+                      onClick={() => {
+                        const channelId = selectedChannelId();
+                        if (!channelId) return;
+                        void projects.attachChannel(channelId);
+                        setSelectedChannelId("");
+                      }}
+                    >
+                      {t("project.channels.connect")}
+                    </Button>
+                  </div>
+                </Show>
+              </header>
+              <ItemGroup class="project-task-list">
+                <Show
+                  when={projects.state.channels.length > 0}
+                  fallback={<p class="project-dashboard-empty">{t("project.channels.empty")}</p>}
+                >
+                  <For each={projects.state.channels}>
+                    {(link) => {
+                      const channel = () => channelById(link.channelId);
+                      return (
+                        <Item class="project-task-item">
+                          <ItemContent>
+                            <ItemTitle>#{channel()?.name ?? link.channelId}</ItemTitle>
+                            <Show when={link.isDefault}>
+                              <Badge variant="ghost">{t("project.channels.default")}</Badge>
+                            </Show>
+                          </ItemContent>
+                          <ItemActions>
+                            <Show when={!link.isDefault}>
+                              <Button variant="ghost" onClick={() => void projects.setDefaultChannel(link.channelId)}>
+                                {t("project.channels.setDefault")}
+                              </Button>
+                            </Show>
+                            <Button variant="ghost" onClick={() => openProjectChannel(link.channelId)}>
+                              {t("project.channels.open")}
+                            </Button>
+                            <IconButton
+                              label={t("project.channels.remove")}
+                              variant="ghost"
+                              onClick={() => void projects.detachChannel(link.channelId)}
+                            >
+                              <X />
+                            </IconButton>
+                          </ItemActions>
+                        </Item>
+                      );
+                    }}
+                  </For>
+                </Show>
+              </ItemGroup>
+            </section>
             <section class="project-tasks-section">
               <header class="project-tasks-header">
                 <Heading as="h2" size="md">

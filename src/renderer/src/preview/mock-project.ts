@@ -182,6 +182,10 @@ export function createMockProjectWorkspace(): {
       repositoryCount: links.filter((link) => link.projectId === projectId).length,
     }),
     listSessions: async () => [],
+    listChannels: async () => [],
+    attachChannel: async () => [],
+    detachChannel: async () => [],
+    setDefaultChannel: async () => [],
   };
 
   const repositoriesApi: RepositoriesDesktopApi = {

@@ -67,6 +67,10 @@ function fakePort(): { port: ProjectPort; dispose: () => void } {
         repositoryCount: links.filter((link) => link.projectId === projectId).length,
       }),
       listSessions: async () => [],
+      listChannels: async () => [],
+      attachChannel: async () => [],
+      detachChannel: async () => [],
+      setDefaultChannel: async () => [],
     },
     repositories: {
       importRepository: async ({ projectId, path }) => {

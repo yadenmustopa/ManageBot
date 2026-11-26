@@ -8,6 +8,7 @@ import {
   type OpenBotRepository,
   type OpenBotWorkspace,
   type OpenBotWorktree,
+  type ProjectChannelLink,
   type ProjectDashboardSummary,
   type ProjectFileMatch,
   type ProjectSessionSummary,
@@ -18,6 +19,7 @@ import {
   parseGitDiffResult,
   parseGitHubRepositoryOverview,
   parseGitReviewSnapshot,
+  parseProjectChannelLinkList,
   parseProjectDashboardSummary,
   parseProjectFileMatchList,
   parseProjectList,
@@ -71,6 +73,9 @@ export const decodeProjectFileMatchList = (value: unknown): ProjectFileMatch[] =
 
 export const decodeProjectSessionSummaryList = (value: unknown): ProjectSessionSummary[] =>
   required(parseProjectSessionSummaryList(value), "project session list response");
+
+export const decodeProjectChannelLinkList = (value: unknown): ProjectChannelLink[] =>
+  required(parseProjectChannelLinkList(value), "project channel list response");
 
 export const decodeThreadRepositoryScope = (value: unknown): ThreadRepositoryScope =>
   required(parseThreadRepositoryScope(value), "thread repository scope response");

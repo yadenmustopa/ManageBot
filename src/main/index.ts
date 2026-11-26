@@ -798,6 +798,7 @@ function registerIpcHandlers({
   worktrees,
   developmentTasks,
   codingWorkflows,
+  projectChannels,
   threadRepositoryScopes,
   hostedServers,
   localServers,
@@ -944,7 +945,7 @@ function registerIpcHandlers({
     ...referralIpcHandlers({ referral }),
     ...licenseIpcHandlers({ license }),
     ...creditsIpcHandlers({ credits }),
-    ...projectIpcHandlers({ projects, repositories, threadRepositoryScopes }),
+    ...projectIpcHandlers({ projects, repositories, projectChannels, threadRepositoryScopes }),
     ...repositoryIpcHandlers({
       repositories,
       threadRepositoryScopes,

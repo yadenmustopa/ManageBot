@@ -55,6 +55,10 @@ function scopedPort(): ProjectPort {
       restoreProject: async () => {},
       getDashboardSummary: async () => ({ projectId: project.id, repositoryCount: 1 }),
       listSessions: async () => [],
+      listChannels: async () => [],
+      attachChannel: async () => [],
+      detachChannel: async () => [],
+      setDefaultChannel: async () => [],
     },
     repositories: {
       importRepository: async () => {

@@ -7,6 +7,7 @@ import type {
   OpenBotProject,
   OpenBotRepository,
   OpenBotWorktree,
+  ProjectChannelLink,
   ProjectDashboardSummary,
   ProjectSessionSummary,
   UpdateProjectInput,
@@ -23,6 +24,7 @@ export interface ProjectsState {
   worktreesByRepository: Record<string, OpenBotWorktree[]>;
   tasks: OpenBotDevelopmentTask[];
   sessions: ProjectSessionSummary[];
+  channels: ProjectChannelLink[];
   dashboard: ProjectDashboardSummary | null;
   loading: boolean;
   error: string | null;
@@ -55,6 +57,7 @@ export function createProjectsStore(port: () => ProjectPort) {
     worktreesByRepository: {},
     tasks: [],
     sessions: [],
+    channels: [],
     dashboard: null,
     loading: false,
     error: null,
@@ -74,11 +77,12 @@ export function createProjectsStore(port: () => ProjectPort) {
   let repositoryLoadToken = 0;
 
   async function loadRepositories(projectId: string, token: number) {
-    const [repositories, dashboard, tasks, sessions] = await Promise.all([
+    const [repositories, dashboard, tasks, sessions, channels] = await Promise.all([
       port().repositories.listForProject({ projectId }),
       port().projects.getDashboardSummary({ projectId }),
       port().developmentTasks.listForProject({ projectId }),
       port().projects.listSessions({ projectId }),
+      port().projects.listChannels({ projectId }),
     ]);
     const worktreeEntries =
       repositories.length === 0
@@ -95,6 +99,7 @@ export function createProjectsStore(port: () => ProjectPort) {
       draft.worktreesByRepository = Object.fromEntries(worktreeEntries);
       draft.tasks = tasks;
       draft.sessions = sessions;
+      draft.channels = channels;
       draft.dashboard = dashboard;
     });
   }
@@ -107,6 +112,7 @@ export function createProjectsStore(port: () => ProjectPort) {
       draft.worktreesByRepository = {};
       draft.tasks = [];
       draft.sessions = [];
+      draft.channels = [];
       draft.dashboard = null;
     });
     writeActiveProjectId(projectId);
@@ -229,6 +235,51 @@ export function createProjectsStore(port: () => ProjectPort) {
         draft.error = errorMessage(cause);
       });
       return false;
+    }
+  }
+
+  async function attachChannel(channelId: string, isDefault = false): Promise<void> {
+    const projectId = state.activeProjectId;
+    if (!projectId) return;
+    try {
+      const channels = await port().projects.attachChannel({ projectId, channelId, isDefault });
+      setState((draft) => {
+        if (draft.activeProjectId === projectId) draft.channels = channels;
+      });
+    } catch (cause) {
+      setState((draft) => {
+        draft.error = errorMessage(cause);
+      });
+    }
+  }
+
+  async function detachChannel(channelId: string): Promise<void> {
+    const projectId = state.activeProjectId;
+    if (!projectId) return;
+    try {
+      const channels = await port().projects.detachChannel({ projectId, channelId });
+      setState((draft) => {
+        if (draft.activeProjectId === projectId) draft.channels = channels;
+      });
+    } catch (cause) {
+      setState((draft) => {
+        draft.error = errorMessage(cause);
+      });
+    }
+  }
+
+  async function setDefaultChannel(channelId: string): Promise<void> {
+    const projectId = state.activeProjectId;
+    if (!projectId) return;
+    try {
+      const channels = await port().projects.setDefaultChannel({ projectId, channelId });
+      setState((draft) => {
+        if (draft.activeProjectId === projectId) draft.channels = channels;
+      });
+    } catch (cause) {
+      setState((draft) => {
+        draft.error = errorMessage(cause);
+      });
     }
   }
 
@@ -522,6 +573,9 @@ export function createProjectsStore(port: () => ProjectPort) {
     createProject,
     updateProject,
     archiveProject,
+    attachChannel,
+    detachChannel,
+    setDefaultChannel,
     importRepository,
     detachRepository,
     refreshRepository,
